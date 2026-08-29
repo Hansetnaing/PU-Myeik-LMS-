@@ -1,15 +1,7 @@
 <?php
-session_start();
-
-if (!isset($_SESSION['s_id'])) {
-    header("Location: login.php");
-    exit;
-}
-
-// Generate CSRF token if not exists
-if (empty($_SESSION['csrf_token'])) {
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-}
+require 'auth.php';
+require_role('student');
+require 'uploads.php';
 
 require 'dbConnect.php';
 
@@ -35,7 +27,8 @@ if ($_SESSION['s_id'] != $student_id) {
     die("You are not authorized to access this page.");
 }
 
-$class_query = "select class_name,subject,section,name from class join teacher on class.teacher_id = teacher.teacher_id where class_id = '$class_id';";
+$studentClass = mysqli_real_escape_string($con, $user['class']);
+$class_query = "select class_name,subject,section,name from class join teacher on class.teacher_id = teacher.teacher_id where class_id = '$class_id' and class.class_name = '$studentClass';";
 $class_result = mysqli_query($con, $class_query);
 $class = mysqli_fetch_assoc($class_result);
 
@@ -78,6 +71,7 @@ if (!$lectures) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    verify_csrf();
     if (isset($_POST['assignment_id'])) {
         $assignment_id = $_POST['assignment_id'];
 
@@ -88,14 +82,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // If the student is submitting a new file
         if (isset($_FILES['submit-ass']) && $_FILES['submit-ass']['error'] === UPLOAD_ERR_OK) {
-            $file_name = $_FILES['submit-ass']['name'];
-            $file_tmp = $_FILES['submit-ass']['tmp_name'];
-            $file_path = "uploads/submit/" . basename($file_name);
-
-            // Create the upload directory if it doesn't exist
-            if (!is_dir("uploads/submit")) {
-                mkdir("uploads/submit/", 0777, true);
-            }
+            $file_path = upload_document($_FILES['submit-ass'], 'uploads/submit');
 
             // If the student has already submitted, delete the old file
             if ($submission && file_exists($submission['file'])) {
@@ -103,7 +90,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             // Move the new file to the upload directory
-            if (move_uploaded_file($file_tmp, $file_path)) {
+            if ($file_path) {
                 // Insert or update the submission record
                 if ($submission) {
                     $query = "UPDATE submit_assignment SET file = '$file_path' WHERE student_id = '$student_id' AND assignment_id = '$assignment_id'";
@@ -155,7 +142,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
     }
     else {
         // Hash password (REAL-WORLD SECURITY)
-        $hashed_password = $new_password;
+        $hashed_password = password_hash($new_password, PASSWORD_DEFAULT);
 
         // Prepared statement (prevent SQL Injection)
         $stmt = $con->prepare("UPDATE student SET password=? WHERE student_id=?");
@@ -227,6 +214,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
                 <p><strong>Due Date:</strong> <?php echo htmlspecialchars($assignment['due_date']); ?></p>
                 <p><strong>File:</strong> <a href="<?php echo htmlspecialchars($assignment['file']); ?>" class="link" target="_blank">Download</a></p>
                 <form action="" method="post" enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
                     <input type="hidden" name="assignment_id" value="<?php echo htmlspecialchars($assignment['assignment_id']); ?>">    
                     <label for="upload">Submitted File: </label>
                     <?php if ($submission): ?>
@@ -267,7 +255,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
 
     <div id="editForm" class="edit-box">
         <h2>Edit Profile</h2>
-        <form action="" method="POST">
+        <form id="profileForm" action="" method="POST">
+            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
             <input type="hidden" name="student_id" value="<?php echo $user['student_id']; ?>">
 
             <label for="name">Name:</label>

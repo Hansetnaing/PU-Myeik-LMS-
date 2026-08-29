@@ -10,10 +10,11 @@
 
 header {
     display: flex;
-    justify-content: space-around;
+    justify-content: space-between;
     align-items: center;
     background-color: rgb(121, 189, 121);
     height: 50px;
+    padding: 0 80px;
 }
 
 header .text-logo{
@@ -23,30 +24,6 @@ header .text-logo{
 
 header .text-logo h2{
     margin: 0 .5rem;
-}
-
-header .contact {
-    color: white;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-header .contact span {
-    font-size: 15px;
-}
-
-header .contact a{
-    text-decoration: none;
-    color: white;
-}
-
-header .contact a:hover{
-    text-decoration: underline;
-}
-
-header .contact span i {
-    font-size: 16px;
 }
 
 header .log-in p {

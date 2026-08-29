@@ -1,10 +1,6 @@
 <?php
-session_start();
-
-if (!isset($_SESSION['t_id'])) {
-    header("Location: login.php");
-    exit;
-}
+require 'auth.php';
+require_role('teacher');
 
 require 'dbConnect.php';
 
@@ -41,7 +37,7 @@ $sub = "SELECT
     JOIN student s ON sa.student_id = s.student_id
     JOIN assignment a ON sa.assignment_id = a.assignment_id
     JOIN teacher t ON a.teacher_id = t.teacher_id
-    WHERE t.teacher_id = $teacher_id;";
+    WHERE t.teacher_id = $teacher_id AND a.class_id = $class_id;";
 
 $resSub = mysqli_query($con,$sub);
 

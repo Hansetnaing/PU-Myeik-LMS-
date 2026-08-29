@@ -14,9 +14,11 @@ window.onload = function () {
 };
 
 document.addEventListener("DOMContentLoaded", function () {
-    const form = document.querySelector("form");
+    const form = document.getElementById("profileForm");
     const newPassword = document.getElementById("new_password");
     const confirmPassword = document.getElementById("confirm_password");
+
+    if (!form || !newPassword || !confirmPassword) return;
 
     form.addEventListener("submit", function (e) {
         const password = newPassword.value;
@@ -47,6 +49,8 @@ document.addEventListener("DOMContentLoaded", function () {
 document.addEventListener("DOMContentLoaded", function () {
     const passwordInput = document.getElementById("new_password");
     const rulesBox = document.getElementById("passwordRules");
+
+    if (!passwordInput || !rulesBox) return;
 
     passwordInput.addEventListener("input", function () {
         if (passwordInput.value.length > 0) {

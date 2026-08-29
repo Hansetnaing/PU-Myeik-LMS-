@@ -1,11 +1,14 @@
 <?php
+require 'auth.php';
+require_role('admin');
 require 'dbConnect.php';
 
 // Check if the teacher ID is provided in the URL
 
 
 if (isset($_POST['update'])) {
-    $teacher_id = $_POST['teacher_id'];
+    verify_csrf();
+    $teacher_id = (int) $_POST['teacher_id'];
     $name = $_POST['name'];
     $email = $_POST['email'];
     $dept_name = $_POST['department'];
@@ -19,7 +22,7 @@ if (isset($_POST['update'])) {
 }
 
 if (isset($_GET['id'])) {
-    $teacher_id = $_GET['id'];
+    $teacher_id = (int) $_GET['id'];
 
     $query = "SELECT * FROM teacher WHERE teacher_id = $teacher_id";
     $result = mysqli_query($con, $query);
@@ -66,6 +69,7 @@ if (isset($_GET['id'])) {
             <div class="form-container">
             <h1>Edit Teacher</h1>
             <form action="" method="post">
+            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
             <input type="hidden" name="teacher_id" value="<?php echo $row['teacher_id']; ?>">
                 <div class="form-group">
                     <label for="username">Username:</label>

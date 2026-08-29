@@ -1,10 +1,7 @@
 <?php
-session_start();
-
-if (!isset($_SESSION['t_id'])) {
-    header("Location: login.php");
-    exit;
-}
+require 'auth.php';
+require_role('teacher');
+require 'uploads.php';
 
 require 'dbConnect.php';
 
@@ -34,17 +31,16 @@ $result_lectures = mysqli_stmt_get_result($stmt_lectures);
 $lectures = mysqli_fetch_all($result_lectures, MYSQLI_ASSOC);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_assignment'])) {
+    verify_csrf();
     $title = $_POST['title'];
     $description = $_POST['description'];
     $due_date = $_POST['due_date'];
     $teacher_id = $_SESSION['t_id'];
 
     if (isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
-        $file_name = $_FILES['file']['name'];
-        $file_tmp = $_FILES['file']['tmp_name'];
-        $file_path = "./uploads/assignment/" . basename($file_name);
+        $file_path = upload_document($_FILES['file'], 'uploads/assignment');
 
-        if (move_uploaded_file($file_tmp, $file_path)) {
+        if ($file_path) {
 
             $insert_assignment = "INSERT INTO assignment (title, description, file, due_date, teacher_id,class_id) VALUES ('$title', '$description', '$file_path', '$due_date', '$teacher_id', '$class_id')";
             mysqli_query($con,$insert_assignment);
@@ -59,19 +55,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_assignment'])) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_lecture'])) {
+    verify_csrf();
     $title = $_POST['title'];
     $description = $_POST['description'];
 
     if (isset($_FILES['lfile']) && $_FILES['lfile']['error'] === UPLOAD_ERR_OK) {
-        $upload_dir = "uploads/lecture/"; 
-        if (!is_dir($upload_dir)) {
-            mkdir($upload_dir, 0777, true);
-        }
-
-        $file_name = basename($_FILES['lfile']['name']);
-        $file_path = $upload_dir . $file_name;
+        $file_path = upload_document($_FILES['lfile'], 'uploads/lecture');
         
-        if (move_uploaded_file($_FILES['lfile']['tmp_name'], $file_path)) {
+        if ($file_path) {
             $insert_lecture = "INSERT INTO lecture (title, description, file, teacher_id, class_id) VALUES ('$title', '$description', '$file_path', '$teacher_id', '$class_id')";
             mysqli_query($con,$insert_lecture);
 
@@ -95,8 +86,10 @@ if (!$res) {
 // Delete Section //
 
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["delete"])) {
+    verify_csrf();
     $delete_id = $_POST["delete_id"];
-    $qry = "delete from assignment where assignment_id ='$delete_id';";
+    $delete_id = (int) $delete_id;
+    $qry = "DELETE FROM assignment WHERE assignment_id = $delete_id AND class_id = $class_id AND teacher_id = $teacher_id";
     $delete = mysqli_query($con,$qry);
     if($delete){
         header("Location: class_details.php?class_id=$class_id");
@@ -105,8 +98,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["delete"])) {
 }
 
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["lecture"])) {
+    verify_csrf();
     $delete_id = $_POST["delete_id"];
-    $qry = "delete from lecture where lecture_id ='$delete_id';";
+    $delete_id = (int) $delete_id;
+    $qry = "DELETE FROM lecture WHERE lecture_id = $delete_id AND class_id = $class_id AND teacher_id = $teacher_id";
     $delete = mysqli_query($con,$qry);
     if($delete){
         header("Location: class_details.php?class_id=$class_id");
@@ -117,6 +112,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["lecture"])) {
 // Update Section //
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['updAss'])) {
+    verify_csrf();
     $title = $_POST['title'];
     $description = $_POST['description'];
     $due_date = $_POST['due_date'];
@@ -129,7 +125,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['updAss'])) {
 
         if (move_uploaded_file($file_tmp, $file_path)) {
 
-            $updateAssign = "update assignment set title='$title', description='$description', file='$file_path', due_date='$due_date', created_at = now() where assignment_id=$id ";
+            $id = (int) $id;
+            $updateAssign = "UPDATE assignment SET title='$title', description='$description', file='$file_path', due_date='$due_date', created_at = now() WHERE assignment_id=$id AND class_id=$class_id AND teacher_id=$teacher_id";
             mysqli_query($con,$updateAssign);
 
             header("Location: class_details.php?class_id=$class_id");
@@ -142,6 +139,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['updAss'])) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['upLec'])) {
+    verify_csrf();
     $title = $_POST['title'];
     $description = $_POST['description'];
     $id = $_POST['id'];
@@ -157,7 +155,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['upLec'])) {
         
         if (move_uploaded_file($_FILES['lfile']['tmp_name'], $file_path)) {
             
-            $updateLec = "update lecture set title='$title', description='$description', file='$file_path', create_at = now() where lecture_id=$id ";
+            $id = (int) $id;
+            $updateLec = "UPDATE lecture SET title='$title', description='$description', file='$file_path', create_at = now() WHERE lecture_id=$id AND class_id=$class_id AND teacher_id=$teacher_id";
             mysqli_query($con,$updateLec);
 
             header("Location: class_details.php?class_id=$class_id");
@@ -232,7 +231,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['upLec'])) {
                                 <button class="edit" title="Edit" onclick="openEditAssignmentModal(<?php echo $assignment['assignment_id']; ?>, '<?php echo addslashes($assignment['title']); ?>', '<?php echo addslashes($assignment['description']); ?>', '<?php echo $assignment['due_date']; ?>')">
                                     <i class="fa-solid fa-pen-to-square"></i>
                                 </button>
-                                <form method="POST" onsubmit="return confirm('Are you sure you want to delete this assignment?');">
+                    <form method="POST" onsubmit="return confirm('Are you sure you want to delete this assignment?');">
+                                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
                                     <input type="hidden" name="delete_id" value="<?php echo $assignment['assignment_id']; ?>">
                                     <button type="submit" class="delete" name="delete">
                                         <i class="fa-solid fa-trash"></i>
@@ -258,7 +258,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['upLec'])) {
                                 <button class="edit" title="Edit" onclick="openEditLectureModal(<?php echo $lecture['lecture_id']; ?>, '<?php echo addslashes($lecture['title']); ?>', '<?php echo addslashes($lecture['description']); ?>')">
                                     <i class="fa-solid fa-pen-to-square"></i>
                                 </button>
-                                <form method="POST" onsubmit="return confirm('Are you sure you want to delete this lecture?');">
+                                    <form method="POST" onsubmit="return confirm('Are you sure you want to delete this lecture?');">
+                                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
                                     <input type="hidden" name="delete_id" value="<?php echo $lecture['lecture_id']; ?>">
                                     <button type="submit" class="delete" name="lecture">
                                         <i class="fa-solid fa-trash"></i>
@@ -277,6 +278,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['upLec'])) {
                     <span class="close" onclick="closeModal('assignmentModal')">&times;</span>
                     <h2>Add Assignment</h2>
                     <form method="POST" action="" enctype="multipart/form-data">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
                         <input type="text" name="title" placeholder="Title" required>
                         <textarea name="description" placeholder="Description" rows="5" required></textarea>
                         <input type="file" name="file" required>
@@ -292,6 +294,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['upLec'])) {
                     <span class="close" onclick="closeModal('lectureModal')">&times;</span>
                     <h2>Add Lecture</h2>
                     <form method="POST" action="" enctype="multipart/form-data">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
                         <input type="text" name="title" placeholder="Title" required>
                         <textarea name="description" placeholder="Description" rows="5" required></textarea>
                         <input type="file" name="lfile" required>
@@ -306,6 +309,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['upLec'])) {
                     <span class="close" onclick="closeModal('editAssignmentModal')">&times;</span>
                     <h2>Edit Assignment</h2>
                     <form id="editAssignmentForm" method="POST" action="" enctype="multipart/form-data">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
                         <input type="hidden" id="editAssignmentId" name="id">
                         <label for="editAssignmentTitle">Title:</label>
                         <input type="text" id="editAssignmentTitle" name="title" required>
@@ -330,6 +334,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['upLec'])) {
                     <span class="close" onclick="closeModal('editLectureModal')">&times;</span>
                     <h2>Edit Lecture</h2>
                     <form id="editLectureForm" method="POST" action="" enctype="multipart/form-data">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
                         <input type="hidden" id="editLectureId" name="id">
                         <label for="editLectureTitle">Title:</label>
                         <input type="text" id="editLectureTitle" name="title" required>

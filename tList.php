@@ -1,3 +1,4 @@
+<?php require 'auth.php'; require_role('admin'); ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>

@@ -1,10 +1,6 @@
 <?php
-session_start();
-
-if (!isset($_SESSION['s_id'])) {
-    header("Location: login.php");
-    exit;
-}
+require 'auth.php';
+require_role('student');
 
 require 'dbConnect.php';
 
@@ -19,6 +15,7 @@ if (!$user) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
+    verify_csrf();
 
     $new_password = $_POST['new_password'];
     $confirm_password = $_POST['confirm_password'];
@@ -32,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
     }
     else {
         // Hash password (REAL-WORLD SECURITY)
-        $hashed_password = $new_password;
+        $hashed_password = password_hash($new_password, PASSWORD_DEFAULT);
 
         // Prepared statement (prevent SQL Injection)
         $stmt = $con->prepare("UPDATE student SET password=? WHERE student_id=?");
@@ -59,10 +56,9 @@ if (!$class_result) {
 }
 
 
-if (isset($_GET['logout'])) {
-    session_destroy();
-    header("Location: login.php");
-    exit;
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['logout'])) {
+    verify_csrf();
+    logout();
 }
 
 ?>
@@ -84,7 +80,7 @@ if (isset($_GET['logout'])) {
         <ul>
             <li><a href="student.php">Home</a></li> 
             <li>
-                <a href="?logout=true">Log Out <i class="fa-solid fa-right-from-bracket"></i></a>
+                <form method="post"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>"><button type="submit" name="logout">Log Out <i class="fa-solid fa-right-from-bracket"></i></button></form>
             </li>
         </ul>
     </div>
@@ -122,7 +118,8 @@ if (isset($_GET['logout'])) {
     </div>
     <div id="editForm" class="edit-box">
         <h2>Edit Profile</h2>
-        <form action="" method="POST">
+        <form id="profileForm" action="" method="POST">
+            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
             <input type="hidden" name="teacher_id" value="<?php echo $user['student_id']; ?>">
 
             <label for="name">Name:</label>

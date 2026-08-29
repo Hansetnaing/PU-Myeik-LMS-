@@ -1,17 +1,21 @@
 <?php
+require 'auth.php';
+require_role('admin');
 require 'dbConnect.php';
 
 if(isset($_POST['create'])){
+    verify_csrf();
 
     $name = $_POST['username'];
-    $password = $_POST['password'];
+    $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
     $email = $_POST['email'];
     $year = $_POST['year'];
     $major = $_POST['major'];
     $class = $_POST['class'];
 
-    $stu = "insert into student (name,password,email,year,major,class) values ('$name','$password','$email','$year','$major','$class');";
-    $stuin = mysqli_query($con,$stu);
+    $stmt = $con->prepare('INSERT INTO student (name, password, email, year, major, class) VALUES (?, ?, ?, ?, ?, ?)');
+    $stmt->bind_param('ssssss', $name, $password, $email, $year, $major, $class);
+    $stuin = $stmt->execute();
     if($stuin){
         $success = 'Create Successful!';
     }
@@ -59,6 +63,7 @@ if(isset($_POST['create'])){
             <div class="form-container">
                 <h2>Create Student Account</h2>
                 <form action="" method="POST">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
 
                     <div id="message">
                         <?php if (isset($success)): ?>

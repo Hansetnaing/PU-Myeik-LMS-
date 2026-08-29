@@ -48,10 +48,15 @@ header {
     cursor: pointer;
 }
 
-.log-out a{
+.log-out a,
+.log-out button {
     font-size: 25px;
     margin-right: 20px;
     color: white;
+    background: transparent;
+    border: 0;
+    padding: 0;
+    cursor: pointer;
 }
 
 /* Sidebar */

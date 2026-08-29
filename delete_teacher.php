@@ -1,8 +1,10 @@
 <?php
+require 'auth.php';
+require_role('admin');
 require 'dbConnect.php';
 
 if (isset($_GET['id'])) {
-    $teacher_id = $_GET['id'];
+    $teacher_id = (int) $_GET['id'];
 
     $query = "DELETE FROM teacher WHERE teacher_id = $teacher_id";
     if (mysqli_query($con, $query)) {

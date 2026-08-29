@@ -42,8 +42,11 @@ if (isset($_POST['submit'])) {
         $name = trim($_POST['name']);
         $pw   = trim($_POST['pw']);
 
-        // ===== Admin Login =====
-        if ($name === 'admin' && $pw === '123123') {
+        // Configure these values in the web-server environment.  A hash avoids
+        // keeping an admin password in this source file.
+        $adminName = getenv('LEARNHUB_ADMIN_USERNAME');
+        $adminHash = getenv('LEARNHUB_ADMIN_PASSWORD_HASH');
+        if ($adminName && $adminHash && hash_equals($adminName, $name) && password_verify($pw, $adminHash)) {
             session_regenerate_id(true);
             $_SESSION['role'] = 'admin';
             $_SESSION['attempts'] = 0;
@@ -52,25 +55,30 @@ if (isset($_POST['submit'])) {
         }
 
         // ===== STUDENT LOGIN =====
-        $query = "SELECT student_id, name, password 
-                  FROM student 
-                  WHERE name='$name'";
-
-        $result = mysqli_query($con, $query);
+        $stmt = $con->prepare('SELECT student_id, name, password FROM student WHERE name = ?');
+        $stmt->bind_param('s', $name);
+        $stmt->execute();
+        $result = $stmt->get_result();
 
         if (mysqli_num_rows($result) == 1) {
 
             $rows = mysqli_fetch_assoc($result);
 
-            if ($pw == $rows['password']) {
+            if (password_verify($pw, $rows['password']) || hash_equals($rows['password'], $pw)) {
 
                 session_regenerate_id(true);
 
                 $_SESSION['s_id'] = $rows['student_id'];
                 $_SESSION['name'] = $rows['name'];
-                $_SESSION['password'] = $rows['password'];
                 $_SESSION['role'] = 'student';
                 $_SESSION['attempts'] = 0;
+
+                if (!password_get_info($rows['password'])['algo']) {
+                    $hash = password_hash($pw, PASSWORD_DEFAULT);
+                    $migration = $con->prepare('UPDATE student SET password = ? WHERE student_id = ?');
+                    $migration->bind_param('si', $hash, $rows['student_id']);
+                    $migration->execute();
+                }
 
                 header("Location: checkstu.php");
                 exit();
@@ -87,15 +95,21 @@ if (isset($_POST['submit'])) {
 
             $rows2 = $result2->fetch_assoc();
 
-            if ($pw === $rows2['password']) {
+            if (password_verify($pw, $rows2['password']) || hash_equals($rows2['password'], $pw)) {
 
                 session_regenerate_id(true);
 
                 $_SESSION['t_id'] = $rows2['teacher_id'];
                 $_SESSION['name'] = $rows2['name'];
-                $_SESSION['password'] = $rows2['password'];
                 $_SESSION['role'] = 'teacher';
                 $_SESSION['attempts'] = 0;
+
+                if (!password_get_info($rows2['password'])['algo']) {
+                    $hash = password_hash($pw, PASSWORD_DEFAULT);
+                    $migration = $con->prepare('UPDATE teacher SET password = ? WHERE teacher_id = ?');
+                    $migration->bind_param('si', $hash, $rows2['teacher_id']);
+                    $migration->execute();
+                }
 
                 header("Location: check.php");
                 exit;
@@ -129,10 +143,10 @@ if (isset($_POST['submit'])) {
             </div>
             <h2>Learning<span>Hub</span></h2>
         </div>
-        <div class="contact">
+        <!-- <div class="contact">
             <span><i class="fa-solid fa-phone-volume"></i> Call us: </span>(+95) 9-8762778
             <span><i class="fa-solid fa-envelope"></i> E-mail: </span><a href="mailto:learninghub@gmail.com">learninghub@gmail.com</a>
-        </div>
+        </div> -->
         <div class="log-in">
             <p>You are not logged in.(<a href="login.php">Log in</a>)</p>
         </div>

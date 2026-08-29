@@ -1,9 +1,12 @@
 <?php
+require 'auth.php';
+require_role('admin');
 require 'dbConnect.php';
 
 // Check if the form is submitted for updating student details
 if (isset($_POST['update'])) {
-    $student_id = $_POST['student_id'];
+    verify_csrf();
+    $student_id = (int) $_POST['student_id'];
     $name = $_POST['name'];
     $email = $_POST['email'];
     $year = $_POST['year'];
@@ -18,7 +21,7 @@ if (isset($_POST['update'])) {
 }
 
 if (isset($_GET['id'])) {
-    $student_id = $_GET['id'];
+    $student_id = (int) $_GET['id'];
 
     $query = "SELECT * FROM student where student_id = $student_id";
     $result = mysqli_query($con, $query);
@@ -68,6 +71,7 @@ if (isset($_GET['id'])) {
             <div class="form-container">
             <h1>Edit Student</h1>
                 <form action="" method="post">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
                     <input type="hidden" name="student_id" value="<?php echo $row['student_id']; ?>">
                     <div class="form-group">
                         <label for="name">Name:</label>

@@ -50,6 +50,24 @@ body {
     color: rgb(121, 189, 121);
 }
 
+.sidebar ul li form {
+    margin: 0;
+}
+
+.sidebar ul li form button {
+    appearance: none;
+    background: transparent;
+    border: 0;
+    color: inherit;
+    cursor: pointer;
+    font: inherit;
+    padding: 0;
+}
+
+.sidebar ul li form button:hover {
+    color: rgb(121, 189, 121);
+}
+
 /* .sidebar ul li.active {
     background-color: #444;
 } */

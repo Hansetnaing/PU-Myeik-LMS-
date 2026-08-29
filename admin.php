@@ -1,3 +1,7 @@
+<?php
+require 'auth.php';
+require_role('admin');
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -16,7 +20,7 @@
                 <h1>Admin</h1>
             </div>
             <div class="log-out">
-                <a href="login.php"><i class="fa-solid fa-right-from-bracket"></i></a>
+                <form action="logout.php" method="post"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>"><button type="submit" aria-label="Log out"><i class="fa-solid fa-right-from-bracket"></i></button></form>
             </div>
         </header>
 
@@ -40,7 +44,7 @@
             <div class="quick-stats">
                 <div class="stat-card">
                     <h3>Total Teachers</h3>
-                    <?php
+<?php
                     require 'dbConnect.php';
                     $count = 'select * from teacher';
                     $res =mysqli_query($con,$count);

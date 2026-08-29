@@ -1,10 +1,6 @@
 <?php
-session_start();
-
-if (!isset($_SESSION['t_id'])) {
-    header("Location: login.php");
-    exit;
-}
+require 'auth.php';
+require_role('teacher');
 
 require 'dbConnect.php';
 
@@ -22,19 +18,22 @@ $stmt_classes = mysqli_query($con,$select_classes);
 $classes = mysqli_fetch_all($stmt_classes, MYSQLI_ASSOC);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_class'])) {
+    verify_csrf();
     $class_name = $_POST['cname'];
     $subject = $_POST['subject'];
     $year = $_POST['year'];
     $section = $_POST['section'];
 
-    $insert_class = "INSERT INTO class (class_name, subject, year, section, teacher_id) VALUES ('$class_name', '$subject', '$year', '$section', '$user_id')";
-    mysqli_query($con, $insert_class);
+    $create = $con->prepare('INSERT INTO class (class_name, subject, year, section, teacher_id) VALUES (?, ?, ?, ?, ?)');
+    $create->bind_param('ssssi', $class_name, $subject, $year, $section, $user_id);
+    $create->execute();
 
     header("Location: teacher.php");
     exit;
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
+    verify_csrf();
 
     $new_password = $_POST['new_password'];
     $confirm_password = $_POST['confirm_password'];
@@ -47,10 +46,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
         $error = "Passwords do not match.";
     }
     else {
-        $hashed_password = $new_password;
+        $hashed_password = password_hash($new_password, PASSWORD_DEFAULT);
 
-        $stmt = $con->prepare("UPDATE student SET password=? WHERE student_id=?");
-        $stmt->bind_param("si", $hashed_password, $student_id);
+        $stmt = $con->prepare("UPDATE teacher SET password=? WHERE teacher_id=?");
+        $stmt->bind_param("si", $hashed_password, $user_id);
 
         if ($stmt->execute()) {
             $success = "Password changed successfully!";
@@ -62,10 +61,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
     }
 }
 
-if (isset($_GET['logout'])) {
-    session_destroy();
-    header("Location: login.php");
-    exit;
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['logout'])) {
+    verify_csrf();
+    logout();
 }
 
 ?>
@@ -96,7 +94,7 @@ if (isset($_GET['logout'])) {
                 <?php endforeach; ?>
             <?php endif; ?>
             <li>
-                <a href="?logout=true">Log Out <i class="fa-solid fa-right-from-bracket"></i></a>
+                <form method="post"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>"><button type="submit" name="logout">Log Out <i class="fa-solid fa-right-from-bracket"></i></button></form>
             </li>
         </ul>
     </div>
@@ -133,7 +131,8 @@ if (isset($_GET['logout'])) {
 
     <div id="editForm" class="edit-box">
         <h2>Edit Profile</h2>
-        <form action="" method="POST">
+        <form id="profileForm" action="" method="POST">
+            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
             <input type="hidden" name="teacher_id" value="<?php echo $user['teacher_id']; ?>">
 
             <label for="name">Name:</label>
@@ -170,6 +169,7 @@ if (isset($_GET['logout'])) {
             <span class="close" id="closeModal">&times;</span>
             <h2>Create Class</h2>
             <form action="" method="post">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
                 <input type="text" name="cname" placeholder="Enter Class Name" style="width: 100%; padding: 10px; margin-top: 10px;">
                 <input type="text" name="year" placeholder="Enter Year" style="width: 100%; padding: 10px; margin-top: 10px;">
                 <input type="text" name="subject" placeholder="Enter Subject" style="width: 100%; padding: 10px; margin-top: 10px;">
