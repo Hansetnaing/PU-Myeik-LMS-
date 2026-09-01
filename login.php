@@ -19,7 +19,7 @@ if ($_SESSION['attempts'] >= 9) {
 } elseif ($_SESSION['attempts'] >= 6) {
     $lock_time = 60;
 } elseif ($_SESSION['attempts'] >= 3) {
-    $lock_time = 15;
+    $lock_time = 30;
 }
 
 if ($lock_time > 0) {
