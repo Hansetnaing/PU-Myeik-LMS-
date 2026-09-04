@@ -141,7 +141,7 @@ if (isset($_POST['submit'])) {
             <div class="hamburger" id="hamburger">
                 <i class="fa-solid fa-bars"></i>
             </div>
-            <h2>Learning<span>Hub</span></h2>
+            <h2>PU Myeik <span>LMS System</span></h2>
         </div>
         <!-- <div class="contact">
             <span><i class="fa-solid fa-phone-volume"></i> Call us: </span>(+95) 9-8762778
@@ -164,7 +164,7 @@ if (isset($_POST['submit'])) {
         <div class="background-container"></div>
     <div class="login-main">
         <div class="login-box">
-            <h2>Learning Hub<br>Login</h2>
+            <h2>PU Myeik LMS System<br>Login</h2>
             <form action="" method="post">
                 <input type="text" placeholder="Username" name="name" required>
                 <input type="password" placeholder="Password" name="pw" required>

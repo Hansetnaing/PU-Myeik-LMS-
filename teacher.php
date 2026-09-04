@@ -102,7 +102,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['logout'])) {
     <div class="main-content">
         <div class="top-nav">
             <div class="left-menu">
-                <h2>Learning Hub</h2>
+                <h2>PU Myeik LMS System</h2>
             </div>
             <div class="right-menu">
                 <span class="pname">Welcome, <?php echo htmlspecialchars($user['name']); ?></span>

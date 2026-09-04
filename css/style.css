@@ -147,7 +147,7 @@ header .log-in p a:hover {
 }
 
 .background-container {
-    background: url('../images/b4.png') no-repeat center center/cover;
+    background: url('../images/pu_bg2.jpg') no-repeat center center/cover;
     width: 100%;
     height: 80vh;
     position: absolute;
@@ -156,20 +156,47 @@ header .log-in p a:hover {
 }
 
 .body-text {
-    padding: 15px 20px;
     position: absolute;
     left: 10%;
     top: 30%;
-    display: flex; 
-    flex-direction: column;
+    width: min(620px, calc(100% - 48px));
+    padding: 32px 36px;
+    color: #fff;
+    background: linear-gradient(135deg, rgba(10, 38, 28, 0.92), rgba(15, 15, 15, 0.78));
+    border-left: 5px solid #88d38c;
+    border-radius: 10px;
+    box-shadow: 0 16px 35px rgba(0, 0, 0, 0.35);
 }
 
-.body-text .text{
-    padding: 10px;
-    background: rgba(0, 0, 0, 0.7);
-    margin: .5rem;
-    color: white;
-    border-radius: 5px;
+.hero-label {
+    margin: 0 0 10px;
+    color: #b9e6bb;
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.body-text h1 {
+    margin: 0;
+    font-size: clamp(2rem, 4vw, 3.25rem);
+    line-height: 1.12;
+    font-weight: 700;
+}
+
+.hero-faculty {
+    margin: 14px 0 0;
+    font-size: clamp(1rem, 2vw, 1.35rem);
+    font-weight: 500;
+    color: #f1f7f1;
+}
+
+@media (max-width: 600px) {
+    .body-text {
+        left: 16px;
+        width: calc(100% - 32px);
+        padding: 24px;
+    }
 }
 
 /* footer-start */

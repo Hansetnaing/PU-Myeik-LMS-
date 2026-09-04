@@ -12,7 +12,12 @@ if (!isset($_GET['class_id']) || !isset($_GET['student_id'])) {
 
 $class_id = trim($_GET['class_id']);
 $class_id = intval($class_id);
-$student_id = $_GET['student_id'];
+$student_id = (int) $_GET['student_id'];
+
+if (isset($_GET['success'])) {
+    $success = $_GET['success'];
+    $assignment_message_id = isset($_GET['assignment_id']) ? (int) $_GET['assignment_id'] : 0;
+}
 
 $select = "SELECT * FROM student WHERE student_id='$student_id'";
 $query = mysqli_query($con, $select);
@@ -53,10 +58,6 @@ if (!$assignments_result) {
 
 $assignments = mysqli_fetch_all($assignments_result, MYSQLI_ASSOC);
 
-if (!$assignments) {
-    echo count($assignments);
-}
-
 $lecture_query = "select * from lecture where class_id= '$class_id' order by lecture_id desc;";
 $lecture_result = mysqli_query($con,$lecture_query);
 
@@ -67,60 +68,71 @@ if (!$lecture_result) {
 $lectures = mysqli_fetch_all($lecture_result, MYSQLI_ASSOC);
 
 if (!$lectures) {
-    $assignments = []; 
+    $lectures = [];
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verify_csrf();
     if (isset($_POST['assignment_id'])) {
-        $assignment_id = $_POST['assignment_id'];
+        $assignment_id = (int) $_POST['assignment_id'];
+        $assignment_message_id = $assignment_id;
 
-        // Check if the student has already submitted the assignment
-        $check_query = "SELECT * FROM submit_assignment WHERE student_id = '$student_id' AND assignment_id = '$assignment_id'";
-        $check_result = mysqli_query($con, $check_query);
-        $submission = mysqli_fetch_assoc($check_result);
+        if ($assignment_id <= 0) {
+            $error = 'Invalid assignment.';
+        } else {
 
-        // If the student is submitting a new file
-        if (isset($_FILES['submit-ass']) && $_FILES['submit-ass']['error'] === UPLOAD_ERR_OK) {
-            $file_path = upload_document($_FILES['submit-ass'], 'uploads/submit');
+            // Check if the student has already submitted the assignment.
+            $check_query = "SELECT * FROM submit_assignment WHERE student_id = $student_id AND assignment_id = $assignment_id";
+            $check_result = mysqli_query($con, $check_query);
+            if (!$check_result) {
+                $error = 'Could not check the submission: ' . mysqli_error($con);
+            } else {
+                $submission = mysqli_fetch_assoc($check_result);
 
-            // If the student has already submitted, delete the old file
-            if ($submission && file_exists($submission['file'])) {
-                unlink($submission['file']); // Delete the old file
-            }
+                // Delete the database record first, then delete its file.
+                if (isset($_POST['unsubmit-ass'])) {
+                    if (!$submission) {
+                        $error = 'No submission was found for this assignment.';
+                    } else {
+                        $delete_query = "DELETE FROM submit_assignment WHERE student_id = $student_id AND assignment_id = $assignment_id";
+                        if (mysqli_query($con, $delete_query)) {
+                            if (!empty($submission['file']) && file_exists($submission['file'])) {
+                                unlink($submission['file']);
+                            }
+                            header("Location: classroom.php?class_id=$class_id&student_id=$student_id&assignment_id=$assignment_id&success=" . urlencode('Assignment unsubmitted successfully!'));
+                            exit;
+                        }
+                        $error = 'Could not unsubmit the assignment: ' . mysqli_error($con);
+                    }
+                // If the student is submitting a new file.
+                } elseif (isset($_POST['sub-ass'])) {
+                    if (!isset($_FILES['submit-ass']) || $_FILES['submit-ass']['error'] !== UPLOAD_ERR_OK) {
+                        $error = 'Please choose a valid file before submitting.';
+                    } else {
+                        $file_path = upload_document($_FILES['submit-ass'], 'uploads/submit');
 
-            // Move the new file to the upload directory
-            if ($file_path) {
-                // Insert or update the submission record
-                if ($submission) {
-                    $query = "UPDATE submit_assignment SET file = '$file_path' WHERE student_id = '$student_id' AND assignment_id = '$assignment_id'";
-                } else {
-                    $query = "INSERT INTO submit_assignment (student_id, assignment_id, file) 
-                              VALUES ('$student_id', '$assignment_id', '$file_path')";
-                }
+                        if (!$file_path) {
+                            $error = 'Upload failed. Use a PDF, Word, PowerPoint, text, or Excel file no larger than 10 MB.';
+                        } else {
+                            if ($submission) {
+                                $query = "UPDATE submit_assignment SET file = '$file_path' WHERE student_id = $student_id AND assignment_id = $assignment_id";
+                            } else {
+                                $query = "INSERT INTO submit_assignment (student_id, assignment_id, file) VALUES ($student_id, $assignment_id, '$file_path')";
+                            }
 
-                if (mysqli_query($con, $query)) {
-                    $success = 'Submit Successfully!';
-                    header("Location: classroom.php?class_id=$class_id&student_id=$student_id&success=Assignment submitted successfully!");
-                    exit;
-                }
-            }
-        }
-
-        // If the student is unsubmitting (deleting the submission)
-        if (isset($_POST['unsubmit-ass'])) {
-            if ($submission) {
-                // Delete the file from the server
-                if (file_exists($submission['file'])) {
-                    unlink($submission['file']);
-                }
-
-                // Delete the submission record from the database
-                $delete_query = "DELETE FROM submit_assignment WHERE student_id = '$student_id' AND assignment_id = '$assignment_id'";
-                if (mysqli_query($con, $delete_query)) {
-                    $success = 'Unsubmit Successfully!';
-                    header("Location: classroom.php?class_id=$class_id&student_id=$student_id&success=Assignment unsubmitted successfully!");
-                    exit;
+                            if (mysqli_query($con, $query)) {
+                                if ($submission && !empty($submission['file']) && file_exists($submission['file'])) {
+                                    unlink($submission['file']);
+                                }
+                                header("Location: classroom.php?class_id=$class_id&student_id=$student_id&assignment_id=$assignment_id&success=" . urlencode('Assignment submitted successfully!'));
+                                exit;
+                            }
+                            if (file_exists($file_path)) {
+                                unlink($file_path);
+                            }
+                            $error = 'Could not save the submission: ' . mysqli_error($con);
+                        }
+                    }
                 }
             }
         }
@@ -182,7 +194,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
     <div class="main-content">
         <div class="top-nav">
             <div class="left-menu">
-                <h2>Learning Hub</h2>
+                <h2>PU Myeik LMS System</h2>
             </div>
             <div class="right-menu">
                 <span class="pname">Welcome, <?php echo htmlspecialchars($student['name']); ?></span>
@@ -216,7 +228,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
                 <form action="" method="post" enctype="multipart/form-data">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
                     <input type="hidden" name="assignment_id" value="<?php echo htmlspecialchars($assignment['assignment_id']); ?>">    
-                    <label for="upload">Submitted File: </label>
+                    <?php if (($assignment_message_id ?? 0) === (int) $assignment['assignment_id'] && isset($success)): ?>
+                        <p class="assignment-message" style="color: green;"><?php echo htmlspecialchars($success); ?></p>
+                    <?php endif; ?>
+                    <?php if (($assignment_message_id ?? 0) === (int) $assignment['assignment_id'] && isset($error)): ?>
+                        <p style="color: red;"><?php echo htmlspecialchars($error); ?></p>
+                    <?php endif; ?>
                     <?php if ($submission): ?>
                         <!-- Display the submitted file in green -->
                         <p style="color: green;">Submitted File: <a href="<?php echo htmlspecialchars($submission['file']); ?>" target="_blank"><?php echo htmlspecialchars(basename($submission['file'])); ?></a></p>
@@ -224,10 +241,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
                         <button type="submit" name="unsubmit-ass" class="submit-btn">Unsubmit<i class="fa-solid fa-arrow-down"></i></button>
                     <?php else: ?>
                         <!-- File input for new submission -->
-                        <input type="file" name="submit-ass">
-                        <?php if (isset($success)): ?>
-                            <p style="color: green;"><?php echo $success; ?></p>
-                        <?php endif; ?>
+                        <label for="submit-ass-<?php echo (int) $assignment['assignment_id']; ?>">Upload your completed assignment:</label>
+                        <input type="file" name="submit-ass" id="submit-ass-<?php echo (int) $assignment['assignment_id']; ?>" required>
                         <!-- Submit button -->
                         <button type="submit" name="sub-ass" class="submit-btn">Submit<i class="fa-solid fa-arrow-up"></i></button>
                     <?php endif; ?>
@@ -276,11 +291,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
                 <li id="rule-special">❌ At least one special character (@$!%*?&#)</li>
             </ul>
             
-            <?php if (isset($success)): ?>
+            <?php if (isset($success) && empty($assignment_message_id)): ?>
                 <p style="color: green;"><?php echo $success; ?></p>
             <?php endif; ?>
             
-            <?php if (isset($error)): ?>
+            <?php if (isset($error) && empty($assignment_message_id)): ?>
                 <p style="color: red;"><?php echo $error; ?></p>
             <?php endif; ?>
 
@@ -288,10 +303,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
         </form>
     </div>
 <!-- <script src="js/edit.js"></script> -->
-<?php if (isset($success) || isset($error)): ?>
+<?php if ((isset($success) || isset($error)) && empty($assignment_message_id)): ?>
 <script>
     sessionStorage.setItem('modalState', 'open');
 </script>
 <?php endif; ?>
+<script>
+setTimeout(() => {
+    document.querySelectorAll('.assignment-message').forEach(message => message.remove());
+}, 10000);
+</script>
 </body>
 </html>
