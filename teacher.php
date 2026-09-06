@@ -32,6 +32,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_class'])) {
     exit;
 }
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_class'])) {
+    verify_csrf();
+    $class_id = filter_input(INPUT_POST, 'class_id', FILTER_VALIDATE_INT);
+
+    if (!$class_id) {
+        $_SESSION['flash_error'] = 'Invalid class selected.';
+    } else {
+        try {
+            mysqli_begin_transaction($con);
+
+            // Remove submissions before their assignments, then remove all class content.
+            $delete_submissions = $con->prepare(
+                'DELETE sa FROM submit_assignment sa INNER JOIN assignment a ON sa.assignment_id = a.assignment_id WHERE a.class_id = ?'
+            );
+            $delete_submissions->bind_param('i', $class_id);
+            $delete_submissions->execute();
+            $delete_submissions->close();
+
+            $delete_assignments = $con->prepare('DELETE FROM assignment WHERE class_id = ?');
+            $delete_assignments->bind_param('i', $class_id);
+            $delete_assignments->execute();
+            $delete_assignments->close();
+
+            $delete_lectures = $con->prepare('DELETE FROM lecture WHERE class_id = ?');
+            $delete_lectures->bind_param('i', $class_id);
+            $delete_lectures->execute();
+            $delete_lectures->close();
+
+            // The teacher_id condition prevents a teacher deleting another teacher's class.
+            $delete_class = $con->prepare('DELETE FROM class WHERE class_id = ? AND teacher_id = ?');
+            $delete_class->bind_param('ii', $class_id, $user_id);
+            $delete_class->execute();
+            $deleted = $delete_class->affected_rows;
+            $delete_class->close();
+
+            if ($deleted !== 1) {
+                throw new RuntimeException('Class not found or you do not have permission to delete it.');
+            }
+
+            mysqli_commit($con);
+            $_SESSION['flash_success'] = 'Class and its lectures, assignments, and submissions were deleted.';
+        } catch (Throwable $e) {
+            mysqli_rollback($con);
+            $_SESSION['flash_error'] = 'The class could not be deleted. Please try again.';
+        }
+    }
+
+    header('Location: teacher.php');
+    exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
     verify_csrf();
 
@@ -65,6 +116,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['logout'])) {
     verify_csrf();
     logout();
 }
+
+$flash_success = $_SESSION['flash_success'] ?? null;
+$flash_error = $_SESSION['flash_error'] ?? null;
+unset($_SESSION['flash_success'], $_SESSION['flash_error']);
 
 ?>
 
@@ -112,17 +167,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['logout'])) {
         <div class="create-container">
             <span class="createclass" id="createGroupBtn" onclick="openModal('modal1')">Create Class <i class="fa-solid fa-plus"></i></span>
         </div>
+        <?php if ($flash_success): ?>
+            <p class="flash-message flash-success"><?php echo htmlspecialchars($flash_success); ?></p>
+        <?php endif; ?>
+        <?php if ($flash_error): ?>
+            <p class="flash-message flash-error"><?php echo htmlspecialchars($flash_error); ?></p>
+        <?php endif; ?>
         <div class="card-container">
             <?php if (!empty($classes)): ?>
                 <?php foreach ($classes as $class): ?>
-                    <a href="class_details.php?class_id=<?php echo $class['class_id']; ?>">
-                        <div class="card">
+                    <div class="card class-card">
+                        <a class="class-card-link" href="class_details.php?class_id=<?php echo (int) $class['class_id']; ?>">
                             <h3><?php echo htmlspecialchars($class['class_name']); ?></h3>
                             <p>Subject: <?php echo htmlspecialchars($class['subject']); ?></p>
                             <p>Year: <?php echo htmlspecialchars($class['year']); ?></p>
                             <p>Section: <?php echo htmlspecialchars($class['section']); ?></p>
-                        </div>
-                    </a>
+                        </a>
+                        <form method="post" class="delete-class-form" onsubmit="return confirm('Delete this class and all of its lectures, assignments, and submissions? This cannot be undone.');">
+                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
+                            <input type="hidden" name="class_id" value="<?php echo (int) $class['class_id']; ?>">
+                            <button type="submit" name="delete_class" class="delete-class-button"><i class="fa-solid fa-trash"></i> Delete class</button>
+                        </form>
+                    </div>
                 <?php endforeach; ?>
             <?php endif; ?>
         </div>
