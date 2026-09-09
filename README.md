@@ -1,6 +1,6 @@
-# Learning Hub
+# PU Myeik LMS System
 
-Learning Hub is a PHP and MySQL classroom system with separate administrator, teacher, and student accounts. Teachers create classes, lectures, and assignments; students access their assigned class and submit work.
+PU Myeik LMS System is a PHP and MySQL classroom system with separate administrator, teacher, and student accounts. Teachers create classes, lectures, and assignments; students access their assigned class and submit work.
 
 ## Requirements
 
