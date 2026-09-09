@@ -202,15 +202,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
             </div>
         </div>
 
-        <section>
-            <div class="teacher">
-            <h2>Teacher: <?php echo htmlspecialchars($class['name']); ?></h2>
-            <h3>Subject: <?php echo htmlspecialchars($class['subject']); ?><hr></h3>
+        <div class="classroom-dashboard">
+        <section class="classroom-hero">
+            <a class="classroom-back" href="student.php"><i class="fa-solid fa-arrow-left"></i> All Classes</a>
+            <p class="student-eyebrow">CLASSROOM</p>
+            <h1><?php echo htmlspecialchars($class['subject']); ?></h1>
+            <div class="classroom-meta">
+                <span><i class="fa-solid fa-chalkboard-user"></i> <?php echo htmlspecialchars($class['name']); ?></span>
+                <span><i class="fa-solid fa-users"></i> Section <?php echo htmlspecialchars($class['section']); ?></span>
             </div>
         </section>
-        <section>
-        <div class="sub-assignment">
-    <h1><i class="fa-regular fa-file-lines"></i> Assignments</h1>
+        <section class="classroom-content">
+        <div class="sub-assignment classroom-list">
+    <div class="content-section-heading"><h2><i class="fa-regular fa-file-lines"></i> Assignments</h2><span><?php echo count($assignments); ?> Total</span></div>
     <?php if (!empty($assignments)): ?>
         <?php foreach ($assignments as $assignment): ?>
             <?php
@@ -220,11 +224,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
             $check_result = mysqli_query($con, $check_query);
             $submission = mysqli_fetch_assoc($check_result);
             ?>
-            <div class="assignment">
-                <p><strong><?php echo htmlspecialchars($assignment['title']); ?></strong></p>
-                <p><?php echo htmlspecialchars($assignment['description']); ?></p>
-                <p><strong>Due Date:</strong> <?php echo htmlspecialchars($assignment['due_date']); ?></p>
-                <p><strong>File:</strong> <a href="<?php echo htmlspecialchars($assignment['file']); ?>" class="link" target="_blank">Download</a></p>
+            <article class="assignment classroom-assignment">
+                <div class="assignment-main">
+                    <div class="assignment-icon"><i class="fa-regular fa-file-lines"></i></div>
+                    <div>
+                        <h3><?php echo htmlspecialchars($assignment['title']); ?></h3>
+                        <p class="assignment-description"><?php echo htmlspecialchars($assignment['description']); ?></p>
+                        <div class="assignment-details">
+                            <span><i class="fa-regular fa-calendar"></i> Due <?php echo htmlspecialchars($assignment['due_date']); ?></span>
+                            <a href="<?php echo htmlspecialchars($assignment['file']); ?>" class="link" target="_blank"><i class="fa-solid fa-download"></i> Assignment file</a>
+                        </div>
+                    </div>
+                </div>
                 <form action="" method="post" enctype="multipart/form-data">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
                     <input type="hidden" name="assignment_id" value="<?php echo htmlspecialchars($assignment['assignment_id']); ?>">    
@@ -235,37 +246,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
                         <p style="color: red;"><?php echo htmlspecialchars($error); ?></p>
                     <?php endif; ?>
                     <?php if ($submission): ?>
-                        <!-- Display the submitted file in green -->
-                        <p style="color: green;">Submitted File: <a href="<?php echo htmlspecialchars($submission['file']); ?>" target="_blank"><?php echo htmlspecialchars(basename($submission['file'])); ?></a></p>
-                        <!-- Unsubmit button -->
-                        <button type="submit" name="unsubmit-ass" class="submit-btn">Unsubmit<i class="fa-solid fa-arrow-down"></i></button>
+                        <div class="submission-state submitted-state"><i class="fa-solid fa-circle-check"></i><span>Submitted<br><a href="<?php echo htmlspecialchars($submission['file']); ?>" target="_blank"><?php echo htmlspecialchars(basename($submission['file'])); ?></a></span></div>
+                        <button type="submit" name="unsubmit-ass" class="submit-btn unsubmit-btn">Unsubmit <i class="fa-solid fa-arrow-rotate-left"></i></button>
                     <?php else: ?>
-                        <!-- File input for new submission -->
-                        <label for="submit-ass-<?php echo (int) $assignment['assignment_id']; ?>">Upload your completed assignment:</label>
+                        <label class="upload-label" for="submit-ass-<?php echo (int) $assignment['assignment_id']; ?>"><i class="fa-solid fa-paperclip"></i> Upload completed work</label>
                         <input type="file" name="submit-ass" id="submit-ass-<?php echo (int) $assignment['assignment_id']; ?>" required>
-                        <!-- Submit button -->
-                        <button type="submit" name="sub-ass" class="submit-btn">Submit<i class="fa-solid fa-arrow-up"></i></button>
+                        <button type="submit" name="sub-ass" class="submit-btn">Submit Work <i class="fa-solid fa-arrow-up"></i></button>
                     <?php endif; ?>
                 </form>
-            </div>
+            </article>
         <?php endforeach; ?>
     <?php endif; ?>
-</div>    
+</div>
         </section>
         <section>
-            <div class="sub-assignment">
-            <h1><i class="fa-solid fa-book-bookmark"></i> Lectures</h1>
+            <div class="sub-assignment classroom-list">
+            <div class="content-section-heading"><h2><i class="fa-solid fa-book-bookmark"></i> Lectures</h2><span><?php echo count($lectures); ?> Total</span></div>
                 <?php if (!empty($lectures)): ?>
                     <?php foreach ($lectures as $lecture): ?>
-                        <div class="lecture">
-                            <p><strong><?php echo htmlspecialchars($lecture['title']); ?></strong></p>
-                            <p><?php echo htmlspecialchars($lecture['description']); ?></p>
-                            <p><strong>File:</strong> <a href="<?php echo htmlspecialchars($lecture['file']); ?>" class="link" target="_blank">Download</a></p>
-                        </div>
+                        <article class="lecture classroom-lecture">
+                            <div class="lecture-icon"><i class="fa-solid fa-book-open"></i></div>
+                            <div><h3><?php echo htmlspecialchars($lecture['title']); ?></h3><p><?php echo htmlspecialchars($lecture['description']); ?></p></div>
+                            <a href="<?php echo htmlspecialchars($lecture['file']); ?>" class="link lecture-download" target="_blank"><i class="fa-solid fa-download"></i> Download</a>
+                        </article>
                     <?php endforeach; ?>
                 <?php endif; ?>
                 </div>
         </section>
+        </div>
     </div>
 
     <div id="editForm" class="edit-box">
