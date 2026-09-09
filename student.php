@@ -96,24 +96,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['logout'])) {
             </div>
         </div>
 
+        <section class="student-class-dashboard">
+            <div class="student-class-heading">
+                <div>
+                    <p class="student-eyebrow">MY LEARNING SPACE</p>
+                    <h1>Your Classes</h1>
+                    <p>Select a class to view lessons, assignments, and submissions.</p>
+                </div>
+                <span class="class-count"><?php echo mysqli_num_rows($class_result); ?> Classes</span>
+            </div>
         <div class="class-container">
             <?php
             if (mysqli_num_rows($class_result) > 0) {
                 while ($class = mysqli_fetch_assoc($class_result)) {
                     echo '
                     <a href="classroom.php?class_id=' . $class['class_id'] . '&student_id=' . $user['student_id'] . '" class="card">
-                        <div class="name">
-                            <h3>' . htmlspecialchars($class['name']) . '</h3>
+                        <div class="class-card-top">
+                            <span class="course-icon"><i class="fa-solid fa-book-open"></i></span>
+                            <span class="open-class">Open <i class="fa-solid fa-arrow-right"></i></span>
                         </div>
                         <div class="class-name">
-                            <h3>' . htmlspecialchars($class['subject']) . '</h3>
-                            <p>Section ' . htmlspecialchars($class['section']) . '</p>
+                            <p class="class-subject">' . htmlspecialchars($class['subject']) . '</p>
+                            <h3>' . htmlspecialchars($class['class_name']) . '</h3>
+                            <p class="class-section"><i class="fa-solid fa-users"></i> Section ' . htmlspecialchars($class['section']) . '</p>
                         </div>
+                        <div class="class-teacher"><i class="fa-solid fa-chalkboard-user"></i> ' . htmlspecialchars($class['name']) . '</div>
                     </a>';
                 }
+            } else {
+                echo '<p class="no-classes">You are not enrolled in any classes yet.</p>';
             }
             ?>
         </div>
+        </section>
 
     </div>
     <div id="editForm" class="edit-box">
