@@ -164,8 +164,13 @@ unset($_SESSION['flash_success'], $_SESSION['flash_error']);
                 <img src="./images/profile.webp" alt="Edit Profile" onclick="toggleEditForm()" style="cursor: pointer; width: 40px; height: 40px; border-radius: 50%; margin-left: 10px;">   
             </div>
         </div>
+        <section class="teacher-classes-dashboard">
+            <div class="teacher-classes-heading">
+                <div><p class="student-eyebrow">TEACHER DASHBOARD</p><h1>Your Classes</h1><p>Create and manage materials for each class.</p></div>
+                <span class="class-count"><?php echo count($classes); ?> Classes</span>
+            </div>
         <div class="create-container">
-            <span class="createclass" id="createGroupBtn" onclick="openModal('modal1')">Create Class <i class="fa-solid fa-plus"></i></span>
+            <button type="button" class="createclass" id="createGroupBtn"><i class="fa-solid fa-plus"></i> Create Class</button>
         </div>
         <?php if ($flash_success): ?>
             <p class="flash-message flash-success"><?php echo htmlspecialchars($flash_success); ?></p>
@@ -173,15 +178,16 @@ unset($_SESSION['flash_success'], $_SESSION['flash_error']);
         <?php if ($flash_error): ?>
             <p class="flash-message flash-error"><?php echo htmlspecialchars($flash_error); ?></p>
         <?php endif; ?>
-        <div class="card-container">
+        <div class="card-container teacher-class-cards">
             <?php if (!empty($classes)): ?>
                 <?php foreach ($classes as $class): ?>
-                    <div class="card class-card">
+                    <div class="card class-card teacher-class-card">
                         <a class="class-card-link" href="class_details.php?class_id=<?php echo (int) $class['class_id']; ?>">
                             <h3><?php echo htmlspecialchars($class['class_name']); ?></h3>
-                            <p>Subject: <?php echo htmlspecialchars($class['subject']); ?></p>
-                            <p>Year: <?php echo htmlspecialchars($class['year']); ?></p>
-                            <p>Section: <?php echo htmlspecialchars($class['section']); ?></p>
+                            <p><strong>Subject:</strong> <?php echo htmlspecialchars($class['subject']); ?></p>
+                            <p><strong>Year:</strong> <?php echo htmlspecialchars($class['year']); ?></p>
+                            <p><strong>Section:</strong> <?php echo htmlspecialchars($class['section']); ?></p>
+                            <span class="simple-manage">Manage Class <i class="fa-solid fa-arrow-right"></i></span>
                         </a>
                         <form method="post" class="delete-class-form" onsubmit="return confirm('Delete this class and all of its lectures, assignments, and submissions? This cannot be undone.');">
                             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
@@ -192,6 +198,7 @@ unset($_SESSION['flash_success'], $_SESSION['flash_error']);
                 <?php endforeach; ?>
             <?php endif; ?>
         </div>
+        </section>
         
     </div>
 
@@ -231,17 +238,15 @@ unset($_SESSION['flash_success'], $_SESSION['flash_error']);
     </div>
 
     <div id="createGroupModal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content create-class-modal">
             <span class="close" id="closeModal">&times;</span>
-            <h2>Create Class</h2>
+            <div class="create-modal-heading"><span><i class="fa-solid fa-plus"></i></span><div><h2>Create Class</h2><p>Set up a new learning space for your students.</p></div></div>
             <form action="" method="post">
                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
-                <input type="text" name="cname" placeholder="Enter Class Name" style="width: 100%; padding: 10px; margin-top: 10px;">
-                <input type="text" name="year" placeholder="Enter Year" style="width: 100%; padding: 10px; margin-top: 10px;">
-                <input type="text" name="subject" placeholder="Enter Subject" style="width: 100%; padding: 10px; margin-top: 10px;">
-                <input type="text" name="section" placeholder="Section" style="width: 100%; padding: 10px; margin-top: 10px;">
-                <button type="submit" name="create_class" style="margin-top: 10px; padding: 10px; width: 30%; background-color: #28a745; color: white; border: none; cursor: pointer; border-radius: 5px;">Create</button>
-                <button type="reset" name="reset_class" style="margin-top: 10px; padding: 10px; width: 30%; background-color: #28a745; color: white; border: none; cursor: pointer; border-radius: 5px;">Cancel</button>
+                <label>Class name<input type="text" name="cname" placeholder="e.g. 1CST" required></label>
+                <div class="create-form-grid"><label>Academic year<input type="text" name="year" placeholder="e.g. First Year" required></label><label>Section<input type="text" name="section" placeholder="e.g. A" required></label></div>
+                <label>Subject<input type="text" name="subject" placeholder="e.g. Physics" required></label>
+                <div class="create-form-actions"><button type="reset" name="reset_class" class="reset-class">Clear</button><button type="submit" name="create_class"><i class="fa-solid fa-plus"></i> Create Class</button></div>
             </form>
         </div>
     </div>

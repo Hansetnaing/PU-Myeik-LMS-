@@ -207,27 +207,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['upLec'])) {
     </aside>
     
         <div class="content">
-            <div class="container">
-                <div class="class-btn">
-                    <button class="btn" onclick="openModal('assignmentModal')">Add Assignment</button>
-                    <button class="btn" onclick="openModal('lectureModal')">Add Lecture</button>
+            <div class="container teacher-class-dashboard">
+                <div class="teacher-class-heading">
+                    <div><p class="eyebrow">CLASS MANAGEMENT</p><h1><?php echo htmlspecialchars($class['subject']); ?></h1><p>Manage learning materials and review student submissions.</p></div>
+                    <span class="teacher-class-badge"><i class="fa-solid fa-users"></i> <?php echo mysqli_num_rows($res); ?> Students</span>
+                </div>
+                <div class="class-btn teacher-actions">
+                    <button class="btn" onclick="openModal('assignmentModal')"><i class="fa-solid fa-plus"></i> Add Assignment</button>
+                    <button class="btn secondary-action" onclick="openModal('lectureModal')"><i class="fa-solid fa-book-open"></i> Add Lecture</button>
                     <form action="checkStuWork.php" >
                         <input type="hidden" name="class_id" value="<?php echo $class_id; ?>">
-                        <button class="btn" >Check Student Work</button>
+                        <button class="btn review-action"><i class="fa-solid fa-chart-column"></i> Check Student Work</button>
                     </form>
                 </div>
                 <!-- Assignments Section -->
-                <section>
-                    <h1>Assignments <hr></h1>
+                <section class="teacher-content-section">
+                    <div class="teacher-section-heading"><h2><i class="fa-regular fa-file-lines"></i> Assignments</h2><span><?php echo count($assignments); ?> Total</span></div>
                     <?php if (!empty($assignments)): ?>
                         <?php foreach ($assignments as $assignment): ?>
-                            <div class="assignment">
-                                <h3><?php echo htmlspecialchars($assignment['title']); ?></h3>
-                                <p><?php echo htmlspecialchars($assignment['description']); ?></p>
-                                <p>Assign Date: <?php echo htmlspecialchars($assignment['created_at']); ?></p>
-                                <p>File: <a href="<?php echo htmlspecialchars($assignment['file']); ?>" class="link" target="_blank">Download</a></p>
-                                <p>Due Date: <?php echo htmlspecialchars($assignment['due_date']); ?></p>
-                                <div class="delup-btn">
+                            <article class="assignment teacher-item-card">
+                                <div class="teacher-item-icon"><i class="fa-regular fa-file-lines"></i></div>
+                                <div class="teacher-item-body"><h3><?php echo htmlspecialchars($assignment['title']); ?></h3><p><?php echo htmlspecialchars($assignment['description']); ?></p><div class="teacher-item-meta"><span><i class="fa-regular fa-calendar"></i> Due <?php echo htmlspecialchars($assignment['due_date']); ?></span><a href="<?php echo htmlspecialchars($assignment['file']); ?>" class="link" target="_blank"><i class="fa-solid fa-download"></i> Assignment file</a></div></div>
+                                <div class="delup-btn teacher-item-actions">
                                 <button class="edit" title="Edit" onclick="openEditAssignmentModal(<?php echo $assignment['assignment_id']; ?>, '<?php echo addslashes($assignment['title']); ?>', '<?php echo addslashes($assignment['description']); ?>', '<?php echo $assignment['due_date']; ?>')">
                                     <i class="fa-solid fa-pen-to-square"></i>
                                 </button>
@@ -239,22 +240,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['upLec'])) {
                                     </button>
                                 </form>
                                 </div>
-                            </div>
+                            </article>
                         <?php endforeach; ?>
                     <?php endif; ?>
                 </section>
 
                 <!-- Lectures Section -->
-                <section>
-                    <h1>Lectures <hr></h1>
+                <section class="teacher-content-section">
+                    <div class="teacher-section-heading"><h2><i class="fa-solid fa-book-bookmark"></i> Lectures</h2><span><?php echo count($lectures); ?> Total</span></div>
                     <?php if (!empty($lectures)): ?>
                         <?php foreach ($lectures as $lecture): ?>
-                            <div class="lecture">
-                                <h3><?php echo htmlspecialchars($lecture['title']); ?></h3>
-                                <p><?php echo htmlspecialchars($lecture['description']); ?></p>
-                                <p>Assign Date: <?php echo htmlspecialchars($lecture['created_at']); ?></p>
-                                <p>File: <a href="<?php echo htmlspecialchars($lecture['file']); ?>" class="link" target="_blank">Download</a></p>
-                                <div class="delup-btn">
+                            <article class="lecture teacher-item-card">
+                                <div class="teacher-item-icon lecture-item-icon"><i class="fa-solid fa-book-open"></i></div>
+                                <div class="teacher-item-body"><h3><?php echo htmlspecialchars($lecture['title']); ?></h3><p><?php echo htmlspecialchars($lecture['description']); ?></p><div class="teacher-item-meta"><span><i class="fa-regular fa-calendar"></i> Added <?php echo htmlspecialchars($lecture['created_at']); ?></span><a href="<?php echo htmlspecialchars($lecture['file']); ?>" class="link" target="_blank"><i class="fa-solid fa-download"></i> Download</a></div></div>
+                                <div class="delup-btn teacher-item-actions">
                                 <button class="edit" title="Edit" onclick="openEditLectureModal(<?php echo $lecture['lecture_id']; ?>, '<?php echo addslashes($lecture['title']); ?>', '<?php echo addslashes($lecture['description']); ?>')">
                                     <i class="fa-solid fa-pen-to-square"></i>
                                 </button>
@@ -266,7 +265,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['upLec'])) {
                                     </button>
                                 </form>
                                 </div>
-                            </div>
+                            </article>
                         <?php endforeach; ?>
                     <?php endif; ?>
                 </section>
@@ -274,78 +273,77 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['upLec'])) {
 
             <!-- Add Assignment Modal -->
             <div id="assignmentModal" class="modal">
-                <div class="modal-content">
+                <div class="modal-content teacher-form-modal">
                     <span class="close" onclick="closeModal('assignmentModal')">&times;</span>
-                    <h2>Add Assignment</h2>
+                    <div class="form-modal-heading"><span class="form-modal-icon"><i class="fa-regular fa-file-lines"></i></span><div><h2>Add Assignment</h2><p>Create work for your students.</p></div></div>
                     <form method="POST" action="" enctype="multipart/form-data">
                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
-                        <input type="text" name="title" placeholder="Title" required>
-                        <textarea name="description" placeholder="Description" rows="5" required></textarea>
-                        <input type="file" name="file" required>
-                        <input type="date" name="due_date" required>
-                        <button type="submit" name="add_assignment">Add Assignment</button>
+                        <label>Assignment title<input type="text" name="title" placeholder="e.g. Chapter 1 Exercises" required></label>
+                        <label>Description<textarea name="description" placeholder="Explain what students need to complete" rows="5" required></textarea></label>
+                        <div class="form-field-row"><label>Attachment<input type="file" name="file" required></label><label>Due date<input type="date" name="due_date" required></label></div>
+                        <button type="submit" name="add_assignment"><i class="fa-solid fa-plus"></i> Create Assignment</button>
                     </form>
                 </div>
             </div>
             
             <!-- Add Lecture Modal -->
             <div id="lectureModal" class="modal">
-                <div class="modal-content">
+                <div class="modal-content teacher-form-modal">
                     <span class="close" onclick="closeModal('lectureModal')">&times;</span>
-                    <h2>Add Lecture</h2>
+                    <div class="form-modal-heading"><span class="form-modal-icon lecture-form-icon"><i class="fa-solid fa-book-open"></i></span><div><h2>Add Lecture</h2><p>Share a lesson resource with students.</p></div></div>
                     <form method="POST" action="" enctype="multipart/form-data">
                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
-                        <input type="text" name="title" placeholder="Title" required>
-                        <textarea name="description" placeholder="Description" rows="5" required></textarea>
-                        <input type="file" name="lfile" required>
-                        <button type="submit" name="add_lecture">Add Lecture</button>
+                        <label>Lecture title<input type="text" name="title" placeholder="e.g. Introduction to Physics" required></label>
+                        <label>Description<textarea name="description" placeholder="Add a short lesson description" rows="5" required></textarea></label>
+                        <label>Lecture file<input type="file" name="lfile" required></label>
+                        <button type="submit" name="add_lecture"><i class="fa-solid fa-plus"></i> Create Lecture</button>
                     </form>
                 </div>
             </div>
 
             <!-- Edit Assignment  -->
             <div id="editAssignmentModal" class="editModal">
-                <div class="edit-content">
+                <div class="edit-content teacher-form-modal">
                     <span class="close" onclick="closeModal('editAssignmentModal')">&times;</span>
-                    <h2>Edit Assignment</h2>
+                    <div class="form-modal-heading"><span class="form-modal-icon"><i class="fa-solid fa-pen"></i></span><div><h2>Edit Assignment</h2><p>Update the assignment information.</p></div></div>
                     <form id="editAssignmentForm" method="POST" action="" enctype="multipart/form-data">
                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
                         <input type="hidden" id="editAssignmentId" name="id">
-                        <label for="editAssignmentTitle">Title:</label>
+                        <label for="editAssignmentTitle">Assignment title</label>
                         <input type="text" id="editAssignmentTitle" name="title" required>
 
-                        <label for="editAssignmentDescription">Description:</label>
+                        <label for="editAssignmentDescription">Description</label>
                         <textarea id="editAssignmentDescription" name="description" rows="5" required></textarea>
 
-                        <label for="editAssignmentFile">File:</label>
+                        <label for="editAssignmentFile">Replace attachment <small>(optional)</small></label>
                         <input type="file" id="editAssignmentFile" name="file">
 
-                        <label for="editAssignmentDueDate">Due Date:</label>
+                        <label for="editAssignmentDueDate">Due date</label>
                         <input type="date" id="editAssignmentDueDate" name="due_date" required>
 
-                        <button type="submit" name="updAss">Update Assignment</button>
+                        <button type="submit" name="updAss"><i class="fa-solid fa-check"></i> Save Changes</button>
                     </form>
                 </div>
             </div>
 
             <!-- Edit Lecture Modal -->
             <div id="editLectureModal" class="modal">
-                <div class="modal-content">
+                <div class="modal-content teacher-form-modal">
                     <span class="close" onclick="closeModal('editLectureModal')">&times;</span>
-                    <h2>Edit Lecture</h2>
+                    <div class="form-modal-heading"><span class="form-modal-icon lecture-form-icon"><i class="fa-solid fa-pen"></i></span><div><h2>Edit Lecture</h2><p>Update the lesson information.</p></div></div>
                     <form id="editLectureForm" method="POST" action="" enctype="multipart/form-data">
                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
                         <input type="hidden" id="editLectureId" name="id">
-                        <label for="editLectureTitle">Title:</label>
+                        <label for="editLectureTitle">Lecture title</label>
                         <input type="text" id="editLectureTitle" name="title" required>
 
-                        <label for="editLectureDescription">Description:</label>
+                        <label for="editLectureDescription">Description</label>
                         <textarea id="editLectureDescription" name="description" rows="5" required></textarea>
 
-                        <label for="editLectureFile">File:</label>
+                        <label for="editLectureFile">Replace attachment <small>(optional)</small></label>
                         <input type="file" id="editLectureFile" name="lfile">
 
-                        <button type="submit" name="upLec">Update Lecture</button>
+                        <button type="submit" name="upLec"><i class="fa-solid fa-check"></i> Save Changes</button>
                     </form>
                 </div>
             </div>

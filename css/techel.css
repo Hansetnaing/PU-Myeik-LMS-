@@ -228,46 +228,86 @@ a {
 /* Edit modal  */
 .edit-box {
     background-color: #fff;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    width: 300px;
+    padding: 26px;
+    border: 1px solid #dce6ed;
+    border-radius: 16px;
+    box-shadow: 0 18px 45px rgba(26, 49, 67, 0.24);
+    width: min(390px, calc(100vw - 32px));
     display: none;
-    position: relative;
-    top: 3rem;
+    position: fixed;
+    z-index: 1100;
+    top: 84px;
+    right: 28px;
 }
 
 .edit-box h2 {
-    margin-bottom: 20px;
-    font-size: 24px;
+    margin-bottom: 5px;
+    font-size: 1.35rem;
     color: #333;
-    text-align: center;
+    text-align: left;
+}
+
+.edit-box h2::after {
+    content: "Update your password securely.";
+    display: block;
+    margin-top: 4px;
+    color: #71808c;
+    font-size: .81rem;
+    font-weight: 500;
+}
+
+.edit-box label {
+    display: block;
+    margin-top: 15px;
+    color: #425869;
+    font-size: .83rem;
+    font-weight: 600;
 }
 
 .edit-box input[type="text"],
 .edit-box input[type="password"] {
     width: 100%;
-    padding: 10px;
-    margin: 10px 0;
-    border: 1px solid #ccc;
-    border-radius: 4px;
+    padding: 10px 11px;
+    margin: 6px 0 0;
+    border: 1px solid #d6e0e7;
+    border-radius: 8px;
+    background: #fbfcfd;
     box-sizing: border-box;
 }
 
+.edit-box input[type="text"] { color: #71808c; background: #f3f6f8; }
+.edit-box input:focus { outline: 0; border-color: #36a257; box-shadow: 0 0 0 3px rgba(54,162,87,.13); }
+
+.edit-box #passwordRules {
+    margin: 12px 0 0 !important;
+    padding: 10px !important;
+    border-radius: 8px;
+    background: #f8fafb;
+    color: #697a89;
+}
+
+.edit-box #passwordRules li { margin: 3px 0; }
+
 .edit-box .update-button {
     width: 100%;
-    padding: 10px;
-    background-color: #007bff;
+    padding: 11px;
+    background: linear-gradient(135deg, #2caf52, #238a40);
     border: none;
-    border-radius: 4px;
+    border-radius: 8px;
     color: #fff;
-    font-size: 16px;
+    font-size: .9rem;
+    font-weight: 600;
     cursor: pointer;
-    margin-top: 10px;
+    margin-top: 18px;
+    box-shadow: 0 4px 10px rgba(35,138,64,.18);
 }
 
 .edit-box .update-button:hover {
-    background-color: #0056b3;
+    background: linear-gradient(135deg, #35bd5b, #207a39);
+}
+
+@media (max-width: 700px) {
+    .edit-box { top: 72px; right: 16px; }
 }
 
 /* Class modal */
@@ -568,6 +608,49 @@ a {
     .student-class-heading h1 { font-size: 1.65rem; }
     .class-container { grid-template-columns: 1fr; }
 }
+
+/* Teacher class cards */
+.teacher-classes-dashboard { max-width: 1180px; margin: 42px auto 0; }
+.teacher-classes-heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin: 0 0 22px; }
+.teacher-classes-heading h1 { margin: 3px 0 6px; color: #25394c; font-size: 2rem; }
+.teacher-classes-heading > div > p:last-child { color: #697a89; font-size: .94rem; }
+.teacher-classes-dashboard .create-container { margin-bottom: 22px; }
+.teacher-classes-dashboard .createclass { border: 0; padding: 10px 14px; border-radius: 8px; background: #258d49; box-shadow: 0 4px 10px rgba(37,141,73,.18); font: inherit; font-size: .86rem; }
+.teacher-classes-dashboard .createclass:hover { background: #1f793d; }
+.teacher-classes-dashboard .createclass i { margin-right: 6px; }
+.teacher-class-cards { grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 22px; }
+.teacher-class-card { overflow: hidden; padding: 0; border: 1px solid #dce6ee; border-radius: 10px; box-shadow: 0 5px 13px rgba(31,57,77,.11); text-align: center; }
+.teacher-class-card .class-card-link { display: block; padding: 23px 20px 18px; background: #fff; color: #4e6070; }
+.teacher-class-card:hover { transform: translateY(-4px); box-shadow: 0 9px 18px rgba(31,57,77,.16); }
+.teacher-class-card h3 { margin: 0 0 14px; color: #2d4052; font-size: 1.35rem; line-height: 1.3; }
+.teacher-class-card .class-card-link p { margin: 6px 0; color: #5e7080; font-size: .9rem; }
+.teacher-class-card .class-card-link strong { color: #394e60; }
+.simple-manage { display: inline-block; margin-top: 14px; color: #228647; font-size: .84rem; font-weight: 700; }
+.simple-manage i { margin-left: 5px; transition: transform .2s ease; }
+.teacher-class-card:hover .simple-manage i { transform: translateX(4px); }
+.teacher-class-card .delete-class-form { margin: 0; padding: 12px 14px; background: #fff; }
+.teacher-class-card .delete-class-button { padding: 8px 11px; font-size: .82rem; }
+
+@media (max-width: 700px) { .teacher-classes-dashboard { margin-top: 25px; } .teacher-classes-heading { align-items: flex-start; flex-direction: column; } .teacher-classes-heading h1 { font-size: 1.65rem; } }
+
+/* Create class form */
+.create-class-modal { width: min(500px, calc(100vw - 32px)); padding: 26px; border-radius: 16px; text-align: left; box-shadow: 0 18px 45px rgba(18,37,50,.25); }
+.create-class-modal .close { color: #71808c; font-size: 28px; line-height: 1; }
+.create-modal-heading { display: flex; align-items: center; gap: 12px; margin: 0 28px 23px 0; }
+.create-modal-heading > span { display: inline-flex; align-items: center; justify-content: center; width: 42px; height: 42px; border-radius: 11px; background: #e5f3e9; color: #258248; }
+.create-modal-heading h2 { margin: 0; color: #293e50; font-size: 1.3rem; }
+.create-modal-heading p { margin-top: 2px; color: #71808c; font-size: .83rem; }
+.create-class-modal form { display: flex; flex-direction: column; gap: 14px; }
+.create-class-modal label { color: #425869; font-size: .83rem; font-weight: 600; }
+.create-class-modal input { width: 100%; margin-top: 6px; padding: 10px 11px; border: 1px solid #d6e0e7; border-radius: 8px; background: #fbfcfd; color: #334a5c; font: inherit; font-size: .9rem; }
+.create-class-modal input:focus { outline: 0; border-color: #36a257; box-shadow: 0 0 0 3px rgba(54,162,87,.13); }
+.create-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.create-form-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 5px; }
+.create-class-modal button { padding: 10px 13px; border: 0; border-radius: 8px; background: linear-gradient(135deg,#2caf52,#238a40); color: #fff; cursor: pointer; font: inherit; font-size: .86rem; font-weight: 600; }
+.create-class-modal button:hover { background: linear-gradient(135deg,#35bd5b,#207a39); }
+.create-class-modal .reset-class { background: #edf1f4; color: #536a7a; }
+.create-class-modal .reset-class:hover { background: #dfe6eb; }
+@media (max-width: 540px) { .create-form-grid { grid-template-columns: 1fr; } }
 
 /* Student classroom */
 .classroom-dashboard {

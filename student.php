@@ -166,8 +166,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['logout'])) {
         </form>
     </div>
 <script src="js/edit.js"></script>
+<?php if (isset($success) || isset($error)): ?>
 <script>
-    sessionStorage.setItem('modalState', 'open');
+    document.getElementById('editForm').style.display = 'block';
 </script>
+<?php endif; ?>
 </body>
 </html>

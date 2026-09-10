@@ -25,17 +25,6 @@ if (!$class) {
 
 $class_name = $class['class_name'];
 
-// A student belongs to a class through student.class in the current schema.
-// The class itself is already restricted by both class_id and teacher_id above.
-$students_stmt = mysqli_prepare($con, 'SELECT student_id, name FROM student WHERE class = ? ORDER BY name');
-mysqli_stmt_bind_param($students_stmt, 's', $class_name);
-mysqli_stmt_execute($students_stmt);
-$res = mysqli_stmt_get_result($students_stmt);
-
-if (!$res) {
-    die("Query failed: " . mysqli_error($con));
-}
-
 /*
  * Start with assignments and enrolled students, then LEFT JOIN submissions.
  * This preserves students who have not submitted and prevents submissions from
@@ -114,14 +103,19 @@ while ($row = mysqli_fetch_assoc($resSub)) {
             </div>
 
             <div class="scrollable-items">
-                <ul>    
-                    <?php
-                    if (mysqli_num_rows($res) > 0) {
-                        while ($result = mysqli_fetch_assoc($res)) {
-                            echo "<li><i style=' margin-right: 10px; ' class='fa-solid fa-user'></i>" . htmlspecialchars($result['name']) . "</li>";
-                        }
-                    }
-                    ?>
+                <ul>
+                    <?php if (!empty($assignments)): ?>
+                        <?php foreach ($assignments as $assignment_id => $assignment): ?>
+                            <li>
+                                <a href="#assignment-<?php echo (int) $assignment_id; ?>">
+                                    <i style="margin-right: 10px;" class="fa-solid fa-file-lines"></i>
+                                    <?php echo htmlspecialchars($assignment['title']); ?>
+                                </a>
+                            </li>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <li class="sidebar-empty">No assignments yet.</li>
+                    <?php endif; ?>
                 </ul>
             </div>
         </aside>
@@ -144,9 +138,9 @@ while ($row = mysqli_fetch_assoc($resSub)) {
                     </div>
                     <?php
                     if (!empty($assignments)) {
-                        foreach ($assignments as $assignment) {
+                        foreach ($assignments as $assignment_id => $assignment) {
                             $totalStudents = count($assignment['students']);
-                            echo "<article class='work-assignment-card'>";
+                            echo "<article id='assignment-" . (int) $assignment_id . "' class='work-assignment-card'>";
                             echo "<div class='assignment-card-heading'>";
                             echo "<div><p class='assignment-label'>ASSIGNMENT</p><h2 class='asstitle'>" . htmlspecialchars($assignment['title']) . "</h2></div>";
                             echo "<span class='completion-rate'>" . $assignment['submitted'] . "/" . $totalStudents . " submitted</span>";
@@ -192,5 +186,19 @@ while ($row = mysqli_fetch_assoc($resSub)) {
             </div>
         </div>
     </div>
+    <button type="button" class="back-to-top" id="backToTop" aria-label="Back to top" title="Back to top">
+        <i class="fa-solid fa-arrow-up"></i>
+    </button>
+    <script>
+        const backToTop = document.getElementById('backToTop');
+
+        window.addEventListener('scroll', () => {
+            backToTop.classList.toggle('is-visible', window.scrollY > 300);
+        });
+
+        backToTop.addEventListener('click', () => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+    </script>
 </body>
 </html>

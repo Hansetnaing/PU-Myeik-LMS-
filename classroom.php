@@ -198,7 +198,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
             </div>
             <div class="right-menu">
                 <span class="pname">Welcome, <?php echo htmlspecialchars($student['name']); ?></span>
-                <img src="./images/profile.webp" alt="Edit Profile" onclick="toggleEditForm()" style="cursor: pointer; width: 40px; height: 40px; border-radius: 50%; margin-left: 10px;">   
             </div>
         </div>
 
@@ -310,12 +309,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
             <button type="submit" name="update" class="update-button">Change Password</button>
         </form>
     </div>
-<!-- <script src="js/edit.js"></script> -->
-<?php if ((isset($success) || isset($error)) && empty($assignment_message_id)): ?>
-<script>
-    sessionStorage.setItem('modalState', 'open');
-</script>
-<?php endif; ?>
 <script>
 setTimeout(() => {
     document.querySelectorAll('.assignment-message').forEach(message => message.remove());
