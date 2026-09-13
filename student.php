@@ -45,11 +45,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
     }
 }
 
-$student_class = $user['class'];
-
-$class_query =  "select class_id,class_name,subject,section,name from class join teacher on class.teacher_id = teacher.teacher_id 
-                where class_name = '$student_class';";
-$class_result = mysqli_query($con, $class_query);
+$class_query = "SELECT c.course_id AS class_id, c.course_name AS class_name, c.subject, c.section, t.name
+                FROM student_course sc
+                INNER JOIN course c ON c.course_id = sc.course_id
+                LEFT JOIN teacher t ON t.teacher_id = c.teacher_id
+                WHERE sc.student_id = ?";
+$class_stmt = $con->prepare($class_query);
+$class_stmt->bind_param('i', $student_id);
+$class_stmt->execute();
+$class_result = $class_stmt->get_result();
 
 if (!$class_result) {
     die("Error fetching class details: " . mysqli_error($con));
@@ -100,10 +104,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['logout'])) {
             <div class="student-class-heading">
                 <div>
                     <p class="student-eyebrow">MY LEARNING SPACE</p>
-                    <h1>Your Classes</h1>
-                    <p>Select a class to view lessons, assignments, and submissions.</p>
+                    <h1>Your Courses</h1>
+                    <p>Select a course to view lessons, assignments, and submissions.</p>
                 </div>
-                <span class="class-count"><?php echo mysqli_num_rows($class_result); ?> Classes</span>
+                <span class="class-count"><?php echo mysqli_num_rows($class_result); ?> Courses</span>
             </div>
         <div class="class-container">
             <?php
@@ -124,7 +128,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['logout'])) {
                     </a>';
                 }
             } else {
-                echo '<p class="no-classes">You are not enrolled in any classes yet.</p>';
+                echo '<p class="no-classes">You are not enrolled in any courses yet.</p>';
             }
             ?>
         </div>

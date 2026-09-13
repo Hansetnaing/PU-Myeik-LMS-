@@ -62,7 +62,7 @@
                         <th>Email</th>
                         <th>Year</th>
                         <th>Major</th>
-                        <th>Class</th>
+                        <th>Courses</th>
                         <th>Action</th>
                     </tr>
                 </thead>
@@ -73,10 +73,10 @@
                     $year = $_POST['year'];
 
                 if($year == 'all'){
-                    $query = 'select * from student;';
+                    $query = 'SELECT s.*, GROUP_CONCAT(c.course_name ORDER BY c.course_name SEPARATOR ", ") AS courses FROM student s LEFT JOIN student_course sc ON sc.student_id = s.student_id LEFT JOIN course c ON c.course_id = sc.course_id GROUP BY s.student_id;';
                 }
                 else{
-                    $query = "select * from student where year='$year';";
+                    $query = "SELECT s.*, GROUP_CONCAT(c.course_name ORDER BY c.course_name SEPARATOR ', ') AS courses FROM student s LEFT JOIN student_course sc ON sc.student_id = s.student_id LEFT JOIN course c ON c.course_id = sc.course_id WHERE s.year='$year' GROUP BY s.student_id;";
                 }
                 
                 if($query){
@@ -90,7 +90,7 @@
                 echo "<td>".$row['email']."</td>";
                 echo "<td>".$row['year']."</td>";
                 echo "<td>".$row['major']."</td>";
-                echo "<td>".$row['class']."</td>";
+                echo "<td>".htmlspecialchars($row['courses'] ?? 'Not enrolled')."</td>";
                 echo "<td>";
                 echo "<a href='edit_student.php?id=" . $row['student_id'] . "' class='edit'><i class='fa-solid fa-pen-to-square'></i></a>";
                 echo "<a href='delete_student.php?id=" . $row['student_id'] . "' class='delete' onclick='return confirm(\"Are you sure you want to delete this student?\");'><i class='fa-solid fa-trash'></i></a>";
@@ -104,7 +104,7 @@
                 <?php
                 require 'dbConnect.php';
                 if(!isset($_POST['submit'])){
-                $query = 'select * from student;';
+                $query = 'SELECT s.*, GROUP_CONCAT(c.course_name ORDER BY c.course_name SEPARATOR ", ") AS courses FROM student s LEFT JOIN student_course sc ON sc.student_id = s.student_id LEFT JOIN course c ON c.course_id = sc.course_id GROUP BY s.student_id;';
                 if($query){
                 $result = mysqli_query($con, $query);
                 $i=0;
@@ -116,7 +116,7 @@
                 echo "<td>".$row['email']."</td>";
                 echo "<td>".$row['year']."</td>";
                 echo "<td>".$row['major']."</td>";
-                echo "<td>".$row['class']."</td>";
+                echo "<td>".htmlspecialchars($row['courses'] ?? 'Not enrolled')."</td>";
                 echo "<td>";
                 echo "<a href='edit_student.php?id=" . $row['student_id'] . "' class='edit'><i class='fa-solid fa-pen-to-square'></i></a>";
                 echo "<a href='delete_student.php?id=" . $row['student_id'] . "' class='delete' onclick='return confirm(\"Are you sure you want to delete this student?\");'><i class='fa-solid fa-trash'></i></a>";

@@ -13,69 +13,83 @@ if (!$user) {
     die("User not found.");
 }
 
-$select_classes = "SELECT * FROM class where teacher_id = '$user_id'";
-$stmt_classes = mysqli_query($con,$select_classes);
-$classes = mysqli_fetch_all($stmt_classes, MYSQLI_ASSOC);
+$select_courses = "SELECT course_id, course_name, subject, year, section, teacher_id FROM course WHERE teacher_id = '$user_id'";
+$stmt_courses = mysqli_query($con, $select_courses);
+$courses = mysqli_fetch_all($stmt_courses, MYSQLI_ASSOC);
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_class'])) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_course'])) {
     verify_csrf();
-    $class_name = $_POST['cname'];
+    $course_name = $_POST['cname'];
     $subject = $_POST['subject'];
     $year = $_POST['year'];
     $section = $_POST['section'];
 
-    $create = $con->prepare('INSERT INTO class (class_name, subject, year, section, teacher_id) VALUES (?, ?, ?, ?, ?)');
-    $create->bind_param('ssssi', $class_name, $subject, $year, $section, $user_id);
-    $create->execute();
+    mysqli_begin_transaction($con);
+    try {
+        $create = $con->prepare('INSERT INTO course (course_name, subject, year, section, teacher_id) VALUES (?, ?, ?, ?, ?)');
+        $create->bind_param('ssssi', $course_name, $subject, $year, $section, $user_id);
+        $create->execute();
+        $course_id = $con->insert_id;
+        // A course enrols every existing student with the selected academic year.
+        $enroll = $con->prepare('INSERT IGNORE INTO student_course (student_id, course_id) SELECT student_id, ? FROM student WHERE year = ?');
+        $enroll->bind_param('is', $course_id, $year);
+        $enroll->execute();
+        $enrolled = $enroll->affected_rows;
+        mysqli_commit($con);
+        $_SESSION['flash_success'] = "Course created and {$enrolled} student(s) enrolled.";
+    } catch (Throwable $e) {
+        mysqli_rollback($con);
+        $_SESSION['flash_error'] = 'The course could not be created. Please try again.';
+    }
 
     header("Location: teacher.php");
     exit;
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_class'])) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_course'])) {
     verify_csrf();
     $class_id = filter_input(INPUT_POST, 'class_id', FILTER_VALIDATE_INT);
 
     if (!$class_id) {
-        $_SESSION['flash_error'] = 'Invalid class selected.';
+        $_SESSION['flash_error'] = 'Invalid course selected.';
     } else {
         try {
             mysqli_begin_transaction($con);
 
             // Remove submissions before their assignments, then remove all class content.
             $delete_submissions = $con->prepare(
-                'DELETE sa FROM submit_assignment sa INNER JOIN assignment a ON sa.assignment_id = a.assignment_id WHERE a.class_id = ?'
+                'DELETE sa FROM submit_assignment sa INNER JOIN assignment a ON sa.assignment_id = a.assignment_id WHERE a.course_id = ?'
             );
             $delete_submissions->bind_param('i', $class_id);
             $delete_submissions->execute();
             $delete_submissions->close();
 
-            $delete_assignments = $con->prepare('DELETE FROM assignment WHERE class_id = ?');
+            $delete_assignments = $con->prepare('DELETE FROM assignment WHERE course_id = ?');
             $delete_assignments->bind_param('i', $class_id);
             $delete_assignments->execute();
             $delete_assignments->close();
 
-            $delete_lectures = $con->prepare('DELETE FROM lecture WHERE class_id = ?');
+            $delete_lectures = $con->prepare('DELETE FROM lecture WHERE course_id = ?');
             $delete_lectures->bind_param('i', $class_id);
             $delete_lectures->execute();
             $delete_lectures->close();
 
             // The teacher_id condition prevents a teacher deleting another teacher's class.
-            $delete_class = $con->prepare('DELETE FROM class WHERE class_id = ? AND teacher_id = ?');
+            $delete_class = $con->prepare('DELETE FROM course WHERE course_id = ? AND teacher_id = ?');
             $delete_class->bind_param('ii', $class_id, $user_id);
             $delete_class->execute();
             $deleted = $delete_class->affected_rows;
             $delete_class->close();
 
             if ($deleted !== 1) {
-                throw new RuntimeException('Class not found or you do not have permission to delete it.');
+                throw new RuntimeException('Course not found or you do not have permission to delete it.');
             }
 
             mysqli_commit($con);
-            $_SESSION['flash_success'] = 'Class and its lectures, assignments, and submissions were deleted.';
+            $_SESSION['flash_success'] = 'Course and its lectures, assignments, and submissions were deleted.';
         } catch (Throwable $e) {
             mysqli_rollback($con);
-            $_SESSION['flash_error'] = 'The class could not be deleted. Please try again.';
+            $_SESSION['flash_error'] = 'The course could not be deleted. Please try again.';
         }
     }
 
@@ -139,11 +153,11 @@ unset($_SESSION['flash_success'], $_SESSION['flash_error']);
         <h2>Teacher</h2>
         <ul>
             <li><a href="teacher.php?teacher_id=<?php echo $_SESSION['t_id']; ?>">Home</a></li> 
-            <?php if (!empty($classes)): ?>
-                <?php foreach ($classes as $class): ?>
+            <?php if (!empty($courses)): ?>
+                <?php foreach ($courses as $course): ?>
                     <li>
-                        <a href="class_details.php?class_id=<?php echo $class['class_id']; ?>">
-                            <?php echo htmlspecialchars($class['class_name']); ?>
+                        <a href="class_details.php?class_id=<?php echo $course['course_id']; ?>">
+                            <?php echo htmlspecialchars($course['course_name']); ?>
                         </a>
                     </li>
                 <?php endforeach; ?>
@@ -166,11 +180,11 @@ unset($_SESSION['flash_success'], $_SESSION['flash_error']);
         </div>
         <section class="teacher-classes-dashboard">
             <div class="teacher-classes-heading">
-                <div><p class="student-eyebrow">TEACHER DASHBOARD</p><h1>Your Classes</h1><p>Create and manage materials for each class.</p></div>
-                <span class="class-count"><?php echo count($classes); ?> Classes</span>
+                <div><p class="student-eyebrow">TEACHER DASHBOARD</p><h1>Your Courses</h1><p>Create and manage materials for each course.</p></div>
+                <span class="class-count"><?php echo count($courses); ?> Courses</span>
             </div>
         <div class="create-container">
-            <button type="button" class="createclass" id="createGroupBtn"><i class="fa-solid fa-plus"></i> Create Class</button>
+            <button type="button" class="createclass" id="createGroupBtn"><i class="fa-solid fa-plus"></i> Create Course</button>
         </div>
         <?php if ($flash_success): ?>
             <p class="flash-message flash-success"><?php echo htmlspecialchars($flash_success); ?></p>
@@ -179,20 +193,20 @@ unset($_SESSION['flash_success'], $_SESSION['flash_error']);
             <p class="flash-message flash-error"><?php echo htmlspecialchars($flash_error); ?></p>
         <?php endif; ?>
         <div class="card-container teacher-class-cards">
-            <?php if (!empty($classes)): ?>
-                <?php foreach ($classes as $class): ?>
+            <?php if (!empty($courses)): ?>
+                <?php foreach ($courses as $course): ?>
                     <div class="card class-card teacher-class-card">
-                        <a class="class-card-link" href="class_details.php?class_id=<?php echo (int) $class['class_id']; ?>">
-                            <h3><?php echo htmlspecialchars($class['class_name']); ?></h3>
-                            <p><strong>Subject:</strong> <?php echo htmlspecialchars($class['subject']); ?></p>
-                            <p><strong>Year:</strong> <?php echo htmlspecialchars($class['year']); ?></p>
-                            <p><strong>Section:</strong> <?php echo htmlspecialchars($class['section']); ?></p>
-                            <span class="simple-manage">Manage Class <i class="fa-solid fa-arrow-right"></i></span>
+                        <a class="class-card-link" href="class_details.php?class_id=<?php echo (int) $course['course_id']; ?>">
+                            <h3><?php echo htmlspecialchars($course['course_name']); ?></h3>
+                            <p><strong>Subject:</strong> <?php echo htmlspecialchars($course['subject']); ?></p>
+                            <p><strong>Year:</strong> <?php echo htmlspecialchars($course['year']); ?></p>
+                            <p><strong>Section:</strong> <?php echo htmlspecialchars($course['section']); ?></p>
+                            <span class="simple-manage">Manage Course <i class="fa-solid fa-arrow-right"></i></span>
                         </a>
-                        <form method="post" class="delete-class-form" onsubmit="return confirm('Delete this class and all of its lectures, assignments, and submissions? This cannot be undone.');">
+                        <form method="post" class="delete-class-form" onsubmit="return confirm('Delete this course and all of its lectures, assignments, and submissions? This cannot be undone.');">
                             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
-                            <input type="hidden" name="class_id" value="<?php echo (int) $class['class_id']; ?>">
-                            <button type="submit" name="delete_class" class="delete-class-button"><i class="fa-solid fa-trash"></i> Delete class</button>
+                            <input type="hidden" name="class_id" value="<?php echo (int) $course['course_id']; ?>">
+                            <button type="submit" name="delete_course" class="delete-class-button"><i class="fa-solid fa-trash"></i> Delete course</button>
                         </form>
                     </div>
                 <?php endforeach; ?>
@@ -240,13 +254,13 @@ unset($_SESSION['flash_success'], $_SESSION['flash_error']);
     <div id="createGroupModal" class="modal">
         <div class="modal-content create-class-modal">
             <span class="close" id="closeModal">&times;</span>
-            <div class="create-modal-heading"><span><i class="fa-solid fa-plus"></i></span><div><h2>Create Class</h2><p>Set up a new learning space for your students.</p></div></div>
+            <div class="create-modal-heading"><span><i class="fa-solid fa-plus"></i></span><div><h2>Create Course</h2><p>All students in the selected year are enrolled automatically.</p></div></div>
             <form action="" method="post">
                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
-                <label>Class name<input type="text" name="cname" placeholder="e.g. 1CST" required></label>
-                <div class="create-form-grid"><label>Academic year<input type="text" name="year" placeholder="e.g. First Year" required></label><label>Section<input type="text" name="section" placeholder="e.g. A" required></label></div>
+                <label>Course name<input type="text" name="cname" placeholder="e.g. Subject Code" required></label>
+                <div class="create-form-grid"><label>Academic year<select name="year" required><option value="">Select academic year</option><option value="First Year">First Year</option><option value="Second Year">Second Year</option><option value="Third Year">Third Year</option><option value="Fourth Year">Fourth Year</option><option value="Fifth Year">Fifth Year</option></select></label><label>Section<input type="text" name="section" placeholder="e.g. A" required></label></div>
                 <label>Subject<input type="text" name="subject" placeholder="e.g. Physics" required></label>
-                <div class="create-form-actions"><button type="reset" name="reset_class" class="reset-class">Clear</button><button type="submit" name="create_class"><i class="fa-solid fa-plus"></i> Create Class</button></div>
+                <div class="create-form-actions"><button type="reset" name="reset_course" class="reset-class">Clear</button><button type="submit" name="create_course"><i class="fa-solid fa-plus"></i> Create Course</button></div>
             </form>
         </div>
     </div>

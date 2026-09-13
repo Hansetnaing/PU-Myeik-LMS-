@@ -7,7 +7,7 @@ require 'dbConnect.php';
 
 // Check if class_id and student_id are provided in the URL
 if (!isset($_GET['class_id']) || !isset($_GET['student_id'])) {
-    die("Class ID or Student ID not provided.");
+    die("Course ID or Student ID not provided.");
 }
 
 $class_id = trim($_GET['class_id']);
@@ -32,13 +32,19 @@ if ($_SESSION['s_id'] != $student_id) {
     die("You are not authorized to access this page.");
 }
 
-$studentClass = mysqli_real_escape_string($con, $user['class']);
-$class_query = "select class_name,subject,section,name from class join teacher on class.teacher_id = teacher.teacher_id where class_id = '$class_id' and class.class_name = '$studentClass';";
-$class_result = mysqli_query($con, $class_query);
+$class_query = "SELECT c.course_name AS class_name, c.subject, c.section, t.name
+                FROM student_course sc
+                INNER JOIN course c ON c.course_id = sc.course_id
+                LEFT JOIN teacher t ON t.teacher_id = c.teacher_id
+                WHERE sc.student_id = ? AND c.course_id = ?";
+$class_stmt = $con->prepare($class_query);
+$class_stmt->bind_param('ii', $student_id, $class_id);
+$class_stmt->execute();
+$class_result = $class_stmt->get_result();
 $class = mysqli_fetch_assoc($class_result);
 
 if (!$class) {
-    die("Class not found.");
+    die("Course not found.");
 }
 
 $student_query = "SELECT * FROM student WHERE student_id = '$student_id'";
@@ -49,7 +55,7 @@ if (!$student) {
     die("Student not found.");
 }
 
-$assignments_query = "SELECT * FROM assignment WHERE class_id = '$class_id' ORDER BY assignment_id DESC";
+$assignments_query = "SELECT * FROM assignment WHERE course_id = '$class_id' ORDER BY assignment_id DESC";
 $assignments_result = mysqli_query($con, $assignments_query);
 
 if (!$assignments_result) {
@@ -58,7 +64,7 @@ if (!$assignments_result) {
 
 $assignments = mysqli_fetch_all($assignments_result, MYSQLI_ASSOC);
 
-$lecture_query = "select * from lecture where class_id= '$class_id' order by lecture_id desc;";
+$lecture_query = "SELECT * FROM lecture WHERE course_id = '$class_id' ORDER BY lecture_id DESC";
 $lecture_result = mysqli_query($con,$lecture_query);
 
 if (!$lecture_result) {
@@ -178,7 +184,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Student | Classroom</title>
+    <title>Student | Course</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="css/techel.css">
     <link rel="icon" href="images/footer.png">
@@ -203,8 +209,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
 
         <div class="classroom-dashboard">
         <section class="classroom-hero">
-            <a class="classroom-back" href="student.php"><i class="fa-solid fa-arrow-left"></i> All Classes</a>
-            <p class="student-eyebrow">CLASSROOM</p>
+            <a class="classroom-back" href="student.php"><i class="fa-solid fa-arrow-left"></i> All Courses</a>
+            <p class="student-eyebrow">COURSE</p>
             <h1><?php echo htmlspecialchars($class['subject']); ?></h1>
             <div class="classroom-meta">
                 <span><i class="fa-solid fa-chalkboard-user"></i> <?php echo htmlspecialchars($class['name']); ?></span>

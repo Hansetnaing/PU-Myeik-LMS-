@@ -6,24 +6,24 @@ require 'uploads.php';
 require 'dbConnect.php';
 
 if (!isset($_GET['class_id'])) {
-    die("Class ID not provided.");
+    die("Course ID not provided.");
 }
 $class_id = $_GET['class_id'];
 $teacher_id = $_SESSION['t_id'];
 
-$select_class = "select * FROM class where class_id = '$class_id' and teacher_id = '$teacher_id';";
+$select_class = "SELECT course_id AS class_id, course_name AS class_name, subject, year, section, teacher_id FROM course WHERE course_id = '$class_id' AND teacher_id = '$teacher_id'";
 $resClass = mysqli_query($con,$select_class);
 $class = mysqli_fetch_assoc($resClass);
 
 if (!$class) {
-    die("You are not authorized to access this class or the class does not exist.");
+    die("You are not authorized to access this course or the course does not exist.");
 }
 
-$select_assignments = "select * from assignment where teacher_id = '$teacher_id' and class_id = '$class_id' order by assignment_id desc; ";
+$select_assignments = "SELECT * FROM assignment WHERE teacher_id = '$teacher_id' AND course_id = '$class_id' ORDER BY assignment_id DESC";
 $resAss = mysqli_query($con,$select_assignments);
 $assignments = mysqli_fetch_all($resAss, MYSQLI_ASSOC);
 
-$select_lectures = "select * FROM lecture where teacher_id = ? and class_id=?";
+$select_lectures = "SELECT * FROM lecture WHERE teacher_id = ? AND course_id = ?";
 $stmt_lectures = mysqli_prepare($con, $select_lectures);
 mysqli_stmt_bind_param($stmt_lectures, "ii", $_SESSION['t_id'],$class_id);
 mysqli_stmt_execute($stmt_lectures);
@@ -42,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_assignment'])) {
 
         if ($file_path) {
 
-            $insert_assignment = "INSERT INTO assignment (title, description, file, due_date, teacher_id,class_id) VALUES ('$title', '$description', '$file_path', '$due_date', '$teacher_id', '$class_id')";
+            $insert_assignment = "INSERT INTO assignment (title, description, file, due_date, teacher_id, course_id) VALUES ('$title', '$description', '$file_path', '$due_date', '$teacher_id', '$class_id')";
             mysqli_query($con,$insert_assignment);
 
             header("Location: class_details.php?class_id=$class_id");
@@ -63,7 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_lecture'])) {
         $file_path = upload_document($_FILES['lfile'], 'uploads/lecture');
         
         if ($file_path) {
-            $insert_lecture = "INSERT INTO lecture (title, description, file, teacher_id, class_id) VALUES ('$title', '$description', '$file_path', '$teacher_id', '$class_id')";
+            $insert_lecture = "INSERT INTO lecture (title, description, file, teacher_id, course_id) VALUES ('$title', '$description', '$file_path', '$teacher_id', '$class_id')";
             mysqli_query($con,$insert_lecture);
 
             header("Location: class_details.php?class_id=$class_id");
@@ -74,13 +74,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_lecture'])) {
     } 
 }
 
-$class_name = $class['class_name'];
-
-$sql = "SELECT name FROM student WHERE class = '$class_name';";
+$sql = "SELECT s.name FROM student s INNER JOIN student_course sc ON sc.student_id = s.student_id WHERE sc.course_id = '$class_id'";
 $res = mysqli_query($con,$sql);
 
 if (!$res) {
     die("Query failed: " . mysqli_error($con));
+}
+
+// Enrol students whose academic year matches this course. INSERT IGNORE keeps
+// existing enrolments unchanged, so the action is safe to run more than once.
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['sync_enrollments'])) {
+    verify_csrf();
+    $sync = $con->prepare('INSERT IGNORE INTO student_course (student_id, course_id) SELECT student_id, ? FROM student WHERE year = ?');
+    $sync->bind_param('is', $class_id, $class['year']);
+
+    if ($sync->execute()) {
+        $enrollment_message = $sync->affected_rows . ' student(s) enrolled from ' . $class['year'] . '.';
+        // Re-read the student list so the count and sidebar update immediately.
+        $res = mysqli_query($con, $sql);
+    } else {
+        $error = 'Could not refresh course enrollments.';
+    }
+    $sync->close();
 }
 
 // Delete Section //
@@ -89,7 +104,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["delete"])) {
     verify_csrf();
     $delete_id = $_POST["delete_id"];
     $delete_id = (int) $delete_id;
-    $qry = "DELETE FROM assignment WHERE assignment_id = $delete_id AND class_id = $class_id AND teacher_id = $teacher_id";
+    $qry = "DELETE FROM assignment WHERE assignment_id = $delete_id AND course_id = $class_id AND teacher_id = $teacher_id";
     $delete = mysqli_query($con,$qry);
     if($delete){
         header("Location: class_details.php?class_id=$class_id");
@@ -101,7 +116,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["lecture"])) {
     verify_csrf();
     $delete_id = $_POST["delete_id"];
     $delete_id = (int) $delete_id;
-    $qry = "DELETE FROM lecture WHERE lecture_id = $delete_id AND class_id = $class_id AND teacher_id = $teacher_id";
+    $qry = "DELETE FROM lecture WHERE lecture_id = $delete_id AND course_id = $class_id AND teacher_id = $teacher_id";
     $delete = mysqli_query($con,$qry);
     if($delete){
         header("Location: class_details.php?class_id=$class_id");
@@ -126,7 +141,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['updAss'])) {
         if (move_uploaded_file($file_tmp, $file_path)) {
 
             $id = (int) $id;
-            $updateAssign = "UPDATE assignment SET title='$title', description='$description', file='$file_path', due_date='$due_date', created_at = now() WHERE assignment_id=$id AND class_id=$class_id AND teacher_id=$teacher_id";
+            $updateAssign = "UPDATE assignment SET title='$title', description='$description', file='$file_path', due_date='$due_date', created_at = NOW() WHERE assignment_id=$id AND course_id=$class_id AND teacher_id=$teacher_id";
             mysqli_query($con,$updateAssign);
 
             header("Location: class_details.php?class_id=$class_id");
@@ -156,7 +171,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['upLec'])) {
         if (move_uploaded_file($_FILES['lfile']['tmp_name'], $file_path)) {
             
             $id = (int) $id;
-            $updateLec = "UPDATE lecture SET title='$title', description='$description', file='$file_path', create_at = now() WHERE lecture_id=$id AND class_id=$class_id AND teacher_id=$teacher_id";
+            $updateLec = "UPDATE lecture SET title='$title', description='$description', file='$file_path', created_at = NOW() WHERE lecture_id=$id AND course_id=$class_id AND teacher_id=$teacher_id";
             mysqli_query($con,$updateLec);
 
             header("Location: class_details.php?class_id=$class_id");
@@ -174,7 +189,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['upLec'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Teacher | Class <?php echo htmlspecialchars($class['class_name']); ?></title>
+    <title>Teacher | Course <?php echo htmlspecialchars($class['class_name']); ?></title>
     <link rel="stylesheet" href="css/class.css">
     <link rel="icon" href="images/footer.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
@@ -209,17 +224,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['upLec'])) {
         <div class="content">
             <div class="container teacher-class-dashboard">
                 <div class="teacher-class-heading">
-                    <div><p class="eyebrow">CLASS MANAGEMENT</p><h1><?php echo htmlspecialchars($class['subject']); ?></h1><p>Manage learning materials and review student submissions.</p></div>
+                    <div><p class="eyebrow">COURSE MANAGEMENT</p><h1><?php echo htmlspecialchars($class['subject']); ?></h1><p>Manage learning materials and review student submissions.</p></div>
                     <span class="teacher-class-badge"><i class="fa-solid fa-users"></i> <?php echo mysqli_num_rows($res); ?> Students</span>
                 </div>
                 <div class="class-btn teacher-actions">
                     <button class="btn" onclick="openModal('assignmentModal')"><i class="fa-solid fa-plus"></i> Add Assignment</button>
                     <button class="btn secondary-action" onclick="openModal('lectureModal')"><i class="fa-solid fa-book-open"></i> Add Lecture</button>
+                    <form method="post">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
+                        <button type="submit" name="sync_enrollments" class="btn secondary-action" title="Enrol students whose academic year matches this course"><i class="fa-solid fa-arrows-rotate"></i> Sync Eligible Students</button>
+                    </form>
                     <form action="checkStuWork.php" >
                         <input type="hidden" name="class_id" value="<?php echo $class_id; ?>">
                         <button class="btn review-action"><i class="fa-solid fa-chart-column"></i> Check Student Work</button>
                     </form>
                 </div>
+                <?php if (isset($enrollment_message)): ?>
+                    <p class="flash-message flash-success"><?php echo htmlspecialchars($enrollment_message); ?></p>
+                <?php endif; ?>
+                <?php if (isset($error)): ?>
+                    <p class="flash-message flash-error"><?php echo htmlspecialchars($error); ?></p>
+                <?php endif; ?>
                 <!-- Assignments Section -->
                 <section class="teacher-content-section">
                     <div class="teacher-section-heading"><h2><i class="fa-regular fa-file-lines"></i> Assignments</h2><span><?php echo count($assignments); ?> Total</span></div>

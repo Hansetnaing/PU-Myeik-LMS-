@@ -7,7 +7,9 @@ PU Myeik LMS System is a PHP and MySQL classroom system with separate administra
 - PHP 8+
 - MySQL / MariaDB
 - Apache through XAMPP, or the PHP development server
-- A database named `learnhub` with the project's existing tables
+- A database named `learnhub_v2`
+
+Import `learnhub_v2.sql` with phpMyAdmin (or MySQL) before using the application. The application now uses the V2 `course` and `student_course` tables, so students can be enrolled in more than one course.
 
 Update the database connection in `dbConnect.php` if your local MySQL username, password, or database name differs.
 
@@ -47,12 +49,12 @@ To change the admin password later, generate a new hash and run the second `setx
 
 ## First-use flow
 
-1. Log in as administrator and create teacher and student accounts.
-2. Log in as a teacher and create a class.
-3. When creating a student, enter the exact class name created by the teacher.
+1. Log in as administrator and create teacher and student accounts, choosing each student's academic year.
+2. Log in as a teacher and create a course, selecting its academic year. All existing students in that year are enrolled automatically.
+3. Students created later are automatically enrolled in all existing courses for their selected year.
 4. Teacher adds lectures or assignments.
-5. Student logs in, opens the assigned class, and submits a permitted document.
-6. Teacher opens **Check Student Work** from that class.
+5. Student logs in, opens an enrolled course, and submits a permitted document.
+6. Teacher opens **Check Student Work** from that course.
 
 ## Security features
 

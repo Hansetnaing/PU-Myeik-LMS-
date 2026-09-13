@@ -5,22 +5,22 @@ require_role('teacher');
 require 'dbConnect.php';
 
 if (!isset($_GET['class_id'])) {
-    die("Class ID not provided.");
+    die("Course ID not provided.");
 }
 $class_id = filter_input(INPUT_GET, 'class_id', FILTER_VALIDATE_INT);
 $teacher_id = (int) $_SESSION['t_id'];
 
 if (!$class_id) {
-    die("Invalid class ID.");
+    die("Invalid course ID.");
 }
 
-$select_class = mysqli_prepare($con, 'SELECT * FROM class WHERE class_id = ? AND teacher_id = ?');
+$select_class = mysqli_prepare($con, 'SELECT course_id AS class_id, course_name AS class_name, subject, year, section, teacher_id FROM course WHERE course_id = ? AND teacher_id = ?');
 mysqli_stmt_bind_param($select_class, 'ii', $class_id, $teacher_id);
 mysqli_stmt_execute($select_class);
 $class = mysqli_fetch_assoc(mysqli_stmt_get_result($select_class));
 
 if (!$class) {
-    die("You are not authorized to access this class or the class does not exist.");
+    die("You are not authorized to access this course or the course does not exist.");
 }
 
 $class_name = $class['class_name'];
@@ -38,12 +38,13 @@ $work_stmt = mysqli_prepare($con, "SELECT
         sa.file AS submit_file,
         DATE(sa.submitted_at) AS submit_date
     FROM assignment a
-    INNER JOIN class c ON c.class_id = a.class_id AND c.teacher_id = a.teacher_id
-    LEFT JOIN student s ON s.class = c.class_name
+    INNER JOIN course c ON c.course_id = a.course_id AND c.teacher_id = a.teacher_id
+    LEFT JOIN student_course sc ON sc.course_id = c.course_id
+    LEFT JOIN student s ON s.student_id = sc.student_id
     LEFT JOIN submit_assignment sa
         ON sa.assignment_id = a.assignment_id
         AND sa.student_id = s.student_id
-    WHERE a.class_id = ? AND a.teacher_id = ?
+    WHERE a.course_id = ? AND a.teacher_id = ?
     ORDER BY a.assignment_id DESC, s.name ASC");
 mysqli_stmt_bind_param($work_stmt, 'ii', $class_id, $teacher_id);
 mysqli_stmt_execute($work_stmt);
@@ -124,7 +125,7 @@ while ($row = mysqli_fetch_assoc($resSub)) {
                 <div class="class-btn">
                     <a href="class_details.php?class_id=<?php echo $class_id; ?>" class="btn back-to-class">
                         <i class="fa-sharp fa-solid fa-arrow-left"></i>
-                        <span>Back to Class</span>
+                        <span>Back to Course</span>
                     </a>
                 </div>
                 <section class="student-work-section">
@@ -132,7 +133,7 @@ while ($row = mysqli_fetch_assoc($resSub)) {
                         <div>
                             <p class="eyebrow">TEACHER DASHBOARD</p>
                             <h1>Student Work Details</h1>
-                            <p>Track assignment submissions for this class.</p>
+                            <p>Track assignment submissions for this course.</p>
                         </div>
                         <div class="assignment-total"><strong><?php echo count($assignments); ?></strong><span>Assignments</span></div>
                     </div>
@@ -172,14 +173,14 @@ while ($row = mysqli_fetch_assoc($resSub)) {
                                 echo "</tr>";
                             }
                             if ($totalStudents === 0) {
-                                echo "<tr><td colspan='3'>No students are enrolled in this class.</td></tr>";
+                                echo "<tr><td colspan='3'>No students are enrolled in this course.</td></tr>";
                             }
                             echo "</tbody>";
                             echo "</table></div>";
                             echo "</article>";
                         }
                     } else {
-                        echo "<p>No assignments have been created for this class yet.</p>";
+                        echo "<p>No assignments have been created for this course yet.</p>";
                     }
                     ?>
                 </section>

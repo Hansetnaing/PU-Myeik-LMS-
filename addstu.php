@@ -11,15 +11,23 @@ if(isset($_POST['create'])){
     $email = $_POST['email'];
     $year = $_POST['year'];
     $major = $_POST['major'];
-    $class = $_POST['class'];
-
-    $stmt = $con->prepare('INSERT INTO student (name, password, email, year, major, class) VALUES (?, ?, ?, ?, ?, ?)');
-    $stmt->bind_param('ssssss', $name, $password, $email, $year, $major, $class);
+    mysqli_begin_transaction($con);
+    $stmt = $con->prepare('INSERT INTO student (name, password, email, year, major) VALUES (?, ?, ?, ?, ?)');
+    $stmt->bind_param('sssss', $name, $password, $email, $year, $major);
     $stuin = $stmt->execute();
+    if ($stuin) {
+        $student_id = $con->insert_id;
+        // New students automatically join every course for their academic year.
+        $enroll = $con->prepare('INSERT IGNORE INTO student_course (student_id, course_id) SELECT ?, course_id FROM course WHERE year = ?');
+        $enroll->bind_param('is', $student_id, $year);
+        $stuin = $enroll->execute();
+    }
     if($stuin){
+        mysqli_commit($con);
         $success = 'Create Successful!';
     }
     else{
+        mysqli_rollback($con);
         $error = 'Something Wrong!';
     }
 }
@@ -111,10 +119,7 @@ if(isset($_POST['create'])){
                         </select>
                     </div>
 
-                    <div class="form-group">
-                        <label for="class">Class :</label>
-                        <input type="text" id="class" name="class" required>
-                    </div>
+                    <p class="form-help">Students are automatically enrolled in all courses created for their selected academic year.</p>
 
                     <div class="form-group">
                         <button type="submit" name="create" class="create-button">Create Account</button>
